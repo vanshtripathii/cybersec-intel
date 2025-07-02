@@ -1,0 +1,1102 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Elite CyberSec Intel Dashboard</title>
+  <style>
+  * {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+body {
+  font-family: 'Inter', 'Segoe UI', sans-serif;
+  background: linear-gradient(135deg, #0f0f23 0%, #1a1a2e 50%, #16213e 100%);
+  color: #ffffff;
+  overflow-x: hidden;
+}
+
+.bg-animation {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: radial-gradient(circle at 25% 25%, rgba(0, 122, 204, 0.1) 0%, transparent 50%),
+              radial-gradient(circle at 75% 75%, rgba(220, 38, 38, 0.1) 0%, transparent 50%);
+  animation: float 20s ease-in-out infinite;
+  z-index: -1;
+}
+
+@keyframes float {
+  0%, 100% { transform: translateY(0px) rotate(0deg); }
+  50% { transform: translateY(-20px) rotate(1deg); }
+}
+
+header {
+  background: linear-gradient(135deg, #000000 0%, #1a1a2e 100%);
+  padding: 2rem 1rem;
+  text-align: center;
+  position: relative;
+  overflow: hidden;
+  border-bottom: 3px solid #007acc;
+}
+
+.header-glow {
+  position: absolute;
+  top: -50%;
+  left: -50%;
+  width: 200%;
+  height: 200%;
+  background: radial-gradient(circle, rgba(0, 122, 204, 0.1) 0%, transparent 70%);
+  animation: pulse 4s ease-in-out infinite;
+}
+
+@keyframes pulse {
+  0%, 100% { opacity: 0.5; }
+  50% { opacity: 1; }
+}
+
+.title {
+  font-size: 3rem;
+  font-weight: 900;
+  text-transform: uppercase;
+  letter-spacing: 3px;
+  background: linear-gradient(45deg, #00d4ff, #ff6b6b, #4ecdc4);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  margin-bottom: 0.5rem;
+  text-shadow: 0 0 30px rgba(0, 212, 255, 0.5);
+}
+
+.subtitle {
+  font-size: 1.2rem;
+  opacity: 0.8;
+  text-transform: uppercase;
+  letter-spacing: 2px;
+}
+
+.stats-bar {
+  display: flex;
+  justify-content: center;
+  gap: 3rem;
+  padding: 1.5rem;
+  background: rgba(0, 0, 0, 0.3);
+  backdrop-filter: blur(10px);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.stat-item {
+  text-align: center;
+  position: relative;
+}
+
+.stat-number {
+  font-size: 2rem;
+  font-weight: bold;
+  margin-bottom: 0.5rem;
+  transition: all 0.3s ease;
+}
+
+.stat-label {
+  font-size: 0.9rem;
+  opacity: 0.7;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+}
+
+.critical-count { color: #ff4757; }
+.high-count { color: #ff7f50; }
+.medium-count { color: #ffa726; }
+.low-count { color: #66bb6a; }
+
+.time-controls {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 2rem;
+  padding: 1.5rem;
+  background: rgba(0, 0, 0, 0.2);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+  flex-wrap: wrap;
+}
+
+.time-range-buttons {
+  display: flex;
+  gap: 0.5rem;
+}
+.time-btn {
+  padding: 0.5rem 1rem;
+  border: 2px solid rgba(255, 255, 255, 0.2);
+  background: rgba(255, 255, 255, 0.1); /* Grey by default */
+  color: white;
+  border-radius: 20px;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  font-size: 0.8rem;
+}
+
+.time-btn:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3);
+  background: rgba(255, 255, 255, 0.2); /* Slightly lighter grey on hover */
+}
+
+.time-btn.active {
+  background: linear-gradient(45deg, #007acc, #00d4ff); /* Blue only when active */
+  border-color: #007acc;
+}
+
+.time-btn.active:hover {
+  background: linear-gradient(45deg, #007acc, #00d4ff); /* Keep blue on hover */
+  transform: translateY(-2px);
+  box-shadow: 0 5px 15px rgba(0, 122, 204, 0.3);
+}
+.date-picker-container {
+  display: none;
+  align-items: center;
+  gap: 1rem;
+}
+
+.date-input {
+  padding: 0.75rem 1rem;
+  border: 2px solid rgba(255, 255, 255, 0.2);
+  background: rgba(255, 255, 255, 0.1);
+  color: white;
+  border-radius: 10px;
+  font-size: 0.9rem;
+  transition: all 0.3s ease;
+}
+
+.date-input:focus {
+  outline: none;
+  border-color: #007acc;
+  box-shadow: 0 0 15px rgba(0, 122, 204, 0.3);
+}
+
+.date-input::-webkit-calendar-picker-indicator {
+  filter: invert(1);
+  cursor: pointer;
+}
+
+.calendar-label {
+  font-size: 0.9rem;
+  opacity: 0.8;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+}
+
+.refresh-btn, .search-btn {
+  padding: 0.75rem 1.5rem;
+  background: linear-gradient(45deg, #4ecdc4, #44a08d);
+  border: none;
+  color: white;
+  border-radius: 25px;
+  cursor: pointer;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  transition: all 0.3s ease;
+}
+
+.refresh-btn:hover, .search-btn:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3);
+}
+
+.filter-bar {
+  display: flex;
+  justify-content: center;
+  gap: 1rem;
+  padding: 1.5rem;
+  background: rgba(0, 0, 0, 0.2);
+}
+
+.filter-btn {
+  padding: 0.75rem 1.5rem;
+  border: 2px solid transparent;
+  background: rgba(255, 255, 255, 0.1);
+  color: white;
+  border-radius: 25px;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+}
+
+.filter-btn:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3);
+}
+
+.filter-btn.active {
+  background: linear-gradient(45deg, #007acc, #00d4ff);
+  border-color: #007acc;
+}
+
+.news-container {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(400px, 1fr));
+  gap: 2rem;
+  padding: 2rem;
+  max-width: 1400px;
+  margin: 0 auto;
+}
+
+.news-card {
+  background: linear-gradient(145deg, rgba(255, 255, 255, 0.05), rgba(255, 255, 255, 0.02));
+  border-radius: 20px;
+  padding: 1.5rem;
+  position: relative;
+  overflow: hidden;
+  backdrop-filter: blur(10px);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  transition: all 0.3s ease;
+  cursor: pointer;
+  min-height: 300px;
+  display: flex;
+  flex-direction: column;
+  padding-top: 3rem;
+}
+
+.news-card:hover {
+  transform: translateY(-5px);
+  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.3);
+  border-color: rgba(255, 255, 255, 0.2);
+}
+
+.news-card::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 4px;
+  background: var(--severity-color);
+}
+
+.news-card.critical::before { background: linear-gradient(90deg, #ff4757, #ff3742); }
+.news-card.high::before { background: linear-gradient(90deg, #ff7f50, #ff6b35); }
+.news-card.medium::before { background: linear-gradient(90deg, #ffa726, #ff9800); }
+.news-card.low::before { background: linear-gradient(90deg, #66bb6a, #4caf50); }
+
+.severity-badge {
+  position: absolute;
+  top: 1rem;
+  right: 1rem;
+  padding: 0.5rem 1rem;
+  border-radius: 20px;
+  font-size: 0.8rem;
+  font-weight: bold;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  z-index: 2;
+  max-width: 100px;
+  text-overflow: ellipsis;
+  overflow: hidden;
+  white-space: nowrap;
+}
+
+.severity-badge.critical {
+  background: linear-gradient(45deg, #ff4757, #ff3742);
+  box-shadow: 0 0 20px rgba(255, 71, 87, 0.5);
+}
+
+.severity-badge.high {
+  background: linear-gradient(45deg, #ff7f50, #ff6b35);
+  box-shadow: 0 0 20px rgba(255, 127, 80, 0.5);
+}
+
+.severity-badge.medium {
+  background: linear-gradient(45deg, #ffa726, #ff9800);
+  box-shadow: 0 0 20px rgba(255, 167, 38, 0.5);
+}
+
+.severity-badge.low {
+  background: linear-gradient(45deg, #66bb6a, #4caf50);
+  box-shadow: 0 0 20px rgba(102, 187, 106, 0.5);
+}
+
+.news-card-content {
+  flex-grow: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 0.8rem;
+}
+
+.news-card h3 {
+  margin: 0;
+  font-size: 1.4rem;
+  line-height: 1.4;
+  color: #ffffff;
+  padding-right: 30px;
+}
+
+.preview-content {
+  display: -webkit-box;
+  -webkit-line-clamp: 3;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  line-height: 1.6;
+  color: rgba(255, 255, 255, 0.7);
+  margin: 0;
+}
+
+.news-card-footer {
+  margin-top: auto;
+  padding-top: 1rem;
+  border-top: 1px solid rgba(255, 255, 255, 0.1);
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.source-link {
+  display: inline-block;
+  margin-top: 1rem;
+  color: #00d4ff;
+  text-decoration: none;
+  font-size: 0.9rem;
+  transition: all 0.3s ease;
+}
+
+.source-link:hover {
+  text-decoration: underline;
+  color: #00a8d9;
+}
+
+.summarize-btn {
+  padding: 0.5rem 1rem;
+  background: linear-gradient(45deg, #007acc, #00d4ff);
+  border: none;
+  border-radius: 20px;
+  color: white;
+  font-size: 0.8rem;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  margin-top: auto;
+  align-self: flex-start;
+}
+
+.summarize-btn:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 5px 15px rgba(0, 122, 204, 0.3);
+}
+
+.modal {
+  display: none;
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: rgba(0, 0, 0, 0.8);
+  backdrop-filter: blur(10px);
+  z-index: 1000;
+  overflow-y: auto;
+}
+
+.modal-content {
+  background: linear-gradient(145deg, #0f0f23, #1a1a2e);
+  margin: 5% auto;
+  padding: 2rem;
+  border-radius: 20px;
+  max-width: 800px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  position: relative;
+}
+
+.close-modal {
+  position: absolute;
+  top: 1rem;
+  right: 1rem;
+  font-size: 2rem;
+  color: rgba(255, 255, 255, 0.6);
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.close-modal:hover {
+  color: white;
+  transform: rotate(90deg);
+}
+
+.modal-severity {
+  display: inline-block;
+  padding: 0.5rem 1rem;
+  border-radius: 20px;
+  font-size: 0.9rem;
+  font-weight: bold;
+  text-transform: uppercase;
+  margin-bottom: 1rem;
+}
+
+.modal-meta {
+  display: flex;
+  justify-content: space-between;
+  margin-bottom: 1.5rem;
+  color: rgba(255, 255, 255, 0.7);
+  font-size: 0.9rem;
+}
+
+.modal-summary {
+  white-space: pre-line;
+  line-height: 1.8;
+  margin-bottom: 2rem;
+  color: rgba(255, 255, 255, 0.9);
+}
+
+.technical-details {
+  margin-top: 1rem;
+  padding-top: 1rem;
+  border-top: 1px dashed rgba(255, 255, 255, 0.2);
+  color: #00d4ff;
+  font-size: 0.9em;
+}
+
+.technical-details ul {
+  margin-left: 1.5rem;
+}
+
+.technical-details li {
+  margin-bottom: 0.5rem;
+}
+
+.loading {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  height: 200px;
+  font-size: 1.2rem;
+  color: rgba(255, 255, 255, 0.6);
+}
+
+.loading-summary {
+  display: flex;
+  align-items: center;
+  color: rgba(255, 255, 255, 0.7);
+  font-size: 0.9rem;
+}
+
+.spinner {
+  width: 20px;
+  height: 20px;
+  border: 2px solid rgba(255, 255, 255, 0.1);
+  border-top: 2px solid #00d4ff;
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+  margin-right: 0.5rem;
+}
+
+.spinner.large {
+  width: 40px;
+  height: 40px;
+  border-width: 4px;
+  margin-right: 1rem;
+}
+
+@keyframes spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+.alert-banner {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  background: linear-gradient(90deg, #ff4757, #ff3742);
+  color: white;
+  padding: 1rem;
+  text-align: center;
+  font-weight: bold;
+  transform: translateY(-100%);
+  transition: transform 0.3s ease;
+  z-index: 1000;
+}
+
+.alert-banner.show {
+  transform: translateY(0);
+}
+
+.no-articles {
+  text-align: center;
+  padding: 3rem;
+  color: rgba(255, 255, 255, 0.6);
+  font-size: 1.2rem;
+}
+
+.time-info {
+  text-align: center;
+  padding: 1rem;
+  background: rgba(0, 0, 0, 0.2);
+  color: rgba(255, 255, 255, 0.7);
+  font-size: 0.9rem;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.toast {
+  position: fixed;
+  bottom: 20px;
+  right: 20px;
+  background: linear-gradient(45deg, #007acc, #00d4ff);
+  color: white;
+  padding: 1rem 2rem;
+  border-radius: 10px;
+  opacity: 0;
+  transition: opacity 0.3s ease;
+  z-index: 1000;
+}
+
+.toast.show {
+  opacity: 1;
+}
+
+@media (max-width: 768px) {
+  .title { font-size: 2rem; }
+  .stats-bar { flex-direction: column; gap: 1rem; }
+  .filter-bar { flex-wrap: wrap; }
+  .time-controls { flex-direction: column; gap: 1rem; }
+  .time-range-buttons { flex-wrap: wrap; justify-content: center; }
+  .news-container { grid-template-columns: 1fr; padding: 1rem; }
+  .date-picker-container { flex-direction: column; }
+  .modal-content { margin: 2rem 1rem; width: calc(100% - 2rem); }
+  
+  .severity-badge {
+    font-size: 0.7rem;
+    padding: 0.4rem 0.8rem;
+    max-width: 80px;
+  }
+  
+  .news-card h3 {
+    font-size: 1.2rem;
+    padding-right: 20px;
+  }
+}
+  </style>
+</head>
+<body>
+  <div class="bg-animation"></div>
+  
+  <div class="alert-banner" id="alertBanner">
+    🚨 CRITICAL THREAT DETECTED - New Zero-Day Vulnerability Reported
+  </div>
+
+  <header>
+    <div class="header-glow"></div>
+    <h1 class="title">CyberSec Intel</h1>
+    <p class="subtitle">Advanced Threat Intelligence Dashboard</p>
+  </header>
+
+  <div class="stats-bar">
+    <div class="stat-item">
+      <div class="stat-number critical-count" id="criticalCount">0</div>
+      <div class="stat-label">Critical</div>
+    </div>
+    <div class="stat-item">
+      <div class="stat-number high-count" id="highCount">0</div>
+      <div class="stat-label">High</div>
+    </div>
+    <div class="stat-item">
+      <div class="stat-number medium-count" id="mediumCount">0</div>
+      <div class="stat-label">Medium</div>
+    </div>
+    <div class="stat-item">
+      <div class="stat-number low-count" id="lowCount">0</div>
+      <div class="stat-label">Low</div>
+    </div>
+  </div>
+
+  <div class="time-controls">
+    <div class="time-range-buttons">
+      <button class="time-btn" data-range="24h">24 Hours</button>
+      <button class="time-btn" data-range="7d">7 Days</button>
+      <button class="time-btn" data-range="1m">1 Month</button>
+      <button class="time-btn" data-range="custom">Custom</button>
+    </div>
+    
+    <div class="date-picker-container" id="datePickerContainer">
+      <span class="calendar-label">From:</span>
+      <input type="date" class="date-input" id="startDate">
+      <span class="calendar-label">To:</span>
+      <input type="date" class="date-input" id="endDate">
+      <button class="search-btn" id="searchBtn">Search</button>
+    </div>
+    
+    <button class="refresh-btn" id="refreshBtn">Refresh</button>
+  </div>
+
+  <div class="time-info" id="timeInfo">
+    Showing current threat intelligence
+  </div>
+
+  <div class="filter-bar">
+    <button class="filter-btn active" data-filter="all">All Threats</button>
+    <button class="filter-btn" data-filter="critical">Critical</button>
+    <button class="filter-btn" data-filter="high">High</button>
+    <button class="filter-btn" data-filter="medium">Medium</button>
+    <button class="filter-btn" data-filter="low">Low</button>
+  </div>
+
+  <main class="news-container" id="newsContainer">
+    <div class="loading">
+      <div class="spinner large"></div>
+      Loading threat intelligence...
+    </div>
+  </main>
+
+  <div class="modal" id="summaryModal">
+    <div class="modal-content">
+      <span class="close-modal">&times;</span>
+      <h3 id="modalTitle"></h3>
+      <div class="modal-severity" id="modalSeverity"></div>
+      <div class="modal-meta">
+        <span id="modalDate"></span>
+        <span id="modalSource"></span>
+      </div>
+      <div class="modal-summary" id="modalSummary">
+        <div class="loading-summary">
+          <div class="spinner"></div>
+          Generating AI summary...
+        </div>
+      </div>
+      <a href="#" target="_blank" class="source-link" id="modalLink">🔗 View Original Article</a>
+    </div>
+  </div>
+
+  <div class="toast" id="toast"></div>
+<button id="download-pdf" style="padding: 10px 20px; margin: 20px; background-color: #222; color: white; border: none; border-radius: 5px; cursor: pointer;">
+  Download Summary as PDF
+</button>
+
+  <script>
+const API_BASE_URL = window.location.origin;
+let currentArticles = [];
+let filteredArticles = [];
+let currentModalArticle = null;
+
+// Initialize dashboard
+document.addEventListener('DOMContentLoaded', function() {
+    setupEventListeners();
+    loadThreats();
+    initDateInputs();
+});
+
+function setupEventListeners() {
+    // Time range buttons
+    document.querySelectorAll('.time-btn').forEach(btn => {
+        btn.addEventListener('click', function() {
+            document.querySelectorAll('.time-btn').forEach(b => b.classList.remove('active'));
+            this.classList.add('active');
+            
+            if (this.dataset.range === 'custom') {
+                document.getElementById('datePickerContainer').style.display = 'flex';
+            } else {
+                document.getElementById('datePickerContainer').style.display = 'none';
+                filterArticlesByTimeRange(this.dataset.range);
+            }
+        });
+    });
+
+    // Filter buttons
+    document.querySelectorAll('.filter-btn').forEach(btn => {
+        btn.addEventListener('click', function() {
+            document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
+            this.classList.add('active');
+            applyFilters();
+        });
+    });
+
+    // Search button
+    document.getElementById('searchBtn').addEventListener('click', searchThreats);
+    
+    // Refresh button
+    document.getElementById('refreshBtn').addEventListener('click', loadThreats);
+}
+
+// Load threats from server
+async function loadThreats() {
+    try {
+        showLoading(true);
+        updateTimeInfo('Loading threat intelligence...');
+
+        const response = await fetch(`${API_BASE_URL}/api/threats`);
+        if (!response.ok) throw new Error(`HTTP ${response.status}`);
+        
+        currentArticles = await response.json();
+        filteredArticles = [...currentArticles];
+        
+        displayArticles(filteredArticles);
+        updateStats();
+        updateTimeInfo(`Loaded ${currentArticles.length} threats`);
+        
+        // Show critical alert if needed
+        if (currentArticles.some(article => article.severity === 'critical')) {
+            showCriticalAlert();
+        }
+    } catch (error) {
+        console.error('Failed to load threats:', error);
+        showErrorState('Failed to load threat intelligence. Please try again later.');
+    } finally {
+        showLoading(false);
+    }
+}
+
+// Search threats by date range
+async function searchThreats() {
+    const startDate = document.getElementById('startDate').value;
+    const endDate = document.getElementById('endDate').value;
+    
+    if (!startDate || !endDate) {
+        showToast('Please select both start and end dates');
+        return;
+    }
+
+    try {
+        showLoading(true);
+        updateTimeInfo(`Searching threats from ${startDate} to ${endDate}...`);
+
+        const response = await fetch(`${API_BASE_URL}/api/threats?start=${startDate}&end=${endDate}`);
+        if (!response.ok) throw new Error(`HTTP ${response.status}`);
+        
+        currentArticles = await response.json();
+        filteredArticles = [...currentArticles];
+        
+        displayArticles(filteredArticles);
+        updateStats();
+        updateTimeInfo(`Found ${currentArticles.length} threats in date range`);
+    } catch (error) {
+        console.error('Search failed:', error);
+        showToast('Failed to search threats. Please try again.');
+    } finally {
+        showLoading(false);
+    }
+}
+
+function filterArticlesByTimeRange(range) {
+    const now = new Date();
+    let cutoffDate;
+    
+    switch(range) {
+        case '24h':
+            cutoffDate = new Date(now - 24 * 60 * 60 * 1000);
+            break;
+        case '7d':
+            cutoffDate = new Date(now - 7 * 24 * 60 * 60 * 1000);
+            break;
+        case '1m':
+            cutoffDate = new Date(now - 30 * 24 * 60 * 60 * 1000);
+            break;
+        default:
+            filteredArticles = [...currentArticles];
+            displayArticles(filteredArticles);
+            updateStats();
+            return;
+    }
+
+    const filtered = currentArticles.filter(article => 
+        new Date(article.publishedAt) >= cutoffDate
+    );
+    
+    filteredArticles = filtered;
+    displayArticles(filteredArticles);
+    updateStats();
+    
+    const ranges = {
+        '24h': 'last 24 hours',
+        '7d': 'last 7 days', 
+        '1m': 'last month'
+    };
+    updateTimeInfo(`Showing threats from the ${ranges[range]} (${filtered.length} articles)`);
+}
+
+function applyFilters() {
+    const activeFilter = document.querySelector('.filter-btn.active')?.dataset.filter || 'all';
+    
+    let filtered = [...currentArticles];
+    
+    // Apply severity filter
+    if (activeFilter !== 'all') {
+        filtered = filtered.filter(article => 
+            article.severity === activeFilter
+        );
+    }
+    
+    filteredArticles = filtered;
+    displayArticles(filteredArticles);
+    updateStats();
+}
+
+function displayArticles(articles) {
+    const container = document.getElementById('newsContainer');
+    
+    if (articles.length === 0) {
+        container.innerHTML = `
+            <div class="no-articles">
+                <h3>No threats found</h3>
+                <p>Try adjusting your filters or date range</p>
+            </div>
+        `;
+        return;
+    }
+
+    container.innerHTML = articles.map(article => `
+        <div class="news-card ${article.severity}" data-id="${article.id}">
+            <div class="severity-badge ${article.severity}">${article.severity.toUpperCase()}</div>
+            <div class="news-card-content">
+                <h3>${article.title}</h3>
+                <div class="preview-content">
+                    ${article.description ? article.description.substring(0, 200) + (article.description.length > 200 ? '...' : '') : 'No preview available'}
+                </div>
+                <button class="summarize-btn" data-id="${article.id}">
+                    🔍 AI Summarize
+                </button>
+            </div>
+            <div class="news-card-footer">
+                <div class="source-info">
+                    <span>${formatDateTime(new Date(article.publishedAt))}</span>
+                    <span>Source: ${article.source}</span>
+                </div>
+                ${article.url ? `
+                <a href="${article.url}" target="_blank" class="source-link">
+                    🔗 View Source
+                </a>` : ''}
+            </div>
+        </div>
+    `).join('');
+
+    // Add click handlers for summarize buttons
+    document.querySelectorAll('.summarize-btn').forEach(btn => {
+        btn.addEventListener('click', (e) => {
+            e.stopPropagation();
+            const articleId = btn.dataset.id;
+            const article = articles.find(a => a.id === articleId);
+            if (article) {
+                showSummaryModal(article);
+            }
+        });
+    });
+
+    // Add click handlers for entire cards
+    document.querySelectorAll('.news-card').forEach(card => {
+        card.addEventListener('click', (e) => {
+            if (!e.target.closest('.summarize-btn') && !e.target.closest('a')) {
+                const articleId = card.dataset.id;
+                const article = articles.find(a => a.id === articleId);
+                if (article && article.url) {
+                    window.open(article.url, '_blank');
+                }
+            }
+        });
+    });
+}
+
+function showSummaryModal(article) {
+    currentModalArticle = article;
+    const modal = document.getElementById('summaryModal');
+    const modalTitle = document.getElementById('modalTitle');
+    const modalSeverity = document.getElementById('modalSeverity');
+    const modalDate = document.getElementById('modalDate');
+    const modalSource = document.getElementById('modalSource');
+    const modalLink = document.getElementById('modalLink');
+    const modalSummary = document.getElementById('modalSummary');
+
+    modalTitle.textContent = article.title;
+    modalSeverity.textContent = article.severity.toUpperCase();
+    modalSeverity.className = 'modal-severity ' + article.severity;
+    modalDate.textContent = formatDateTime(new Date(article.publishedAt));
+    modalSource.textContent = 'Source: ' + article.source;
+    modalLink.href = article.url || '#';
+    
+    modalSummary.innerHTML = `
+        <div class="loading-summary">
+            <div class="spinner"></div>
+            Generating AI summary...
+        </div>
+    `;
+    
+    modal.style.display = 'block';
+    document.body.style.overflow = 'hidden';
+    
+    // Close modal handlers
+    document.querySelector('.close-modal').onclick = () => closeModal();
+    window.onclick = (e) => {
+        if (e.target === modal) {
+            closeModal();
+        }
+    };
+    
+    // Fetch the summary
+    fetchArticleSummary(article);
+}
+
+function closeModal() {
+    document.getElementById('summaryModal').style.display = 'none';
+    document.body.style.overflow = 'auto';
+    currentModalArticle = null;
+}
+
+async function fetchArticleSummary(article) {
+    try {
+        const modalSummary = document.getElementById('modalSummary');
+        const contentToSummarize = article.description || article.title;
+        
+        const response = await fetch(`${API_BASE_URL}/api/summarize`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ 
+                content: contentToSummarize,
+                articleId: article.id 
+            })
+        });
+        
+        if (!response.ok) throw new Error(`HTTP ${response.status}`);
+        
+        const data = await response.json();
+        
+        if (data.summary) {
+            // Split main points and technical details
+            const summaryParts = data.summary.split('\nTechnical Details:');
+            let summaryHTML = summaryParts[0].split('\n')
+                .filter(line => line.trim())
+                .map(line => `<p>${line.replace('•', '')}</p>`)
+                .join('');
+            
+            // Add technical details if present
+            if (summaryParts[1]) {
+                summaryHTML += `
+                    <div class="technical-details">
+                        <strong>Technical Details:</strong>
+                        <ul>
+                            ${summaryParts[1].split('\n')
+                                .filter(detail => detail.trim())
+                                .map(detail => `<li>${detail.replace('•', '').trim()}</li>`)
+                                .join('')}
+                        </ul>
+                    </div>
+                `;
+            }
+            
+            modalSummary.innerHTML = summaryHTML;
+        } else {
+            modalSummary.innerHTML = '<p>Could not generate summary</p>';
+        }
+    } catch (error) {
+        console.error('Summary generation failed:', error);
+        document.getElementById('modalSummary').innerHTML = `
+            <p>Error generating summary. Please try again later.</p>
+            <button class="refresh-btn" onclick="fetchArticleSummary(currentModalArticle)">Retry</button>
+        `;
+    }
+}
+fetch('/summarize-pdf', {
+  method: 'POST',
+  headers: {
+    'Content-Type': 'application/json'
+  },
+  body: JSON.stringify({ content: articleText })
+})
+.then(response => response.blob())
+.then(blob => {
+  const url = window.URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = 'summary.pdf';
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+});
+function updateStats() {
+    const stats = filteredArticles.reduce((acc, article) => {
+        acc[article.severity] = (acc[article.severity] || 0) + 1;
+        return acc;
+    }, {critical: 0, high: 0, medium: 0, low: 0});
+
+    document.getElementById('criticalCount').textContent = stats.critical;
+    document.getElementById('highCount').textContent = stats.high;
+    document.getElementById('mediumCount').textContent = stats.medium;
+    document.getElementById('lowCount').textContent = stats.low;
+}
+
+function updateTimeInfo(message) {
+    document.getElementById('timeInfo').textContent = message;
+}
+
+function showLoading(show) {
+    const container = document.getElementById('newsContainer');
+    if (show) {
+        container.innerHTML = `
+            <div class="loading">
+                <div class="spinner large"></div>
+                Loading threat intelligence...
+            </div>
+        `;
+    }
+}
+
+function showErrorState(message) {
+    const container = document.getElementById('newsContainer');
+    container.innerHTML = `
+        <div class="error-state">
+            <h3>⚠️ Error</h3>
+            <p>${message}</p>
+            <button class="refresh-btn" onclick="loadThreats()">🔄 Retry</button>
+        </div>
+    `;
+}
+
+function showToast(message, duration = 3000) {
+    const toast = document.getElementById('toast');
+    toast.textContent = message;
+    toast.classList.add('show');
+    
+    setTimeout(() => {
+        toast.classList.remove('show');
+    }, duration);
+}
+
+function showCriticalAlert() {
+    const banner = document.getElementById('alertBanner');
+    const criticalCount = currentArticles.filter(a => a.severity === 'critical').length;
+    banner.textContent = `🚨 CRITICAL ALERT: ${criticalCount} active critical threats detected`;
+    banner.classList.add('show');
+    
+    setTimeout(() => {
+        banner.classList.remove('show');
+    }, 10000);
+}
+
+function formatDateTime(date) {
+    return date.toLocaleString('en-US', {
+        year: 'numeric',
+        month: 'short',
+        day: 'numeric',
+        hour: '2-digit',
+        minute: '2-digit'
+    });
+}
+
+function initDateInputs() {
+    const today = new Date();
+    const oneWeekAgo = new Date();
+    oneWeekAgo.setDate(today.getDate() - 7);
+    
+    document.getElementById('startDate').valueAsDate = oneWeekAgo;
+    document.getElementById('endDate').valueAsDate = today;
+}
+
+// Make functions available globally
+window.loadThreats = loadThreats;
+window.searchThreats = searchThreats;
+window.fetchArticleSummary = fetchArticleSummary;
+  </script>
+</body>
+</html>
