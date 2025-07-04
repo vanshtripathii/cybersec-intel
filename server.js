@@ -2,7 +2,6 @@ require('dotenv').config();
 const express = require('express');
 const cors = require('cors');
 const axios = require('axios');
-const PDFDocument = require('pdfkit');
 const { v4: uuidv4 } = require('uuid');
 const Parser = require('rss-parser');
 const parser = new Parser();
@@ -152,10 +151,83 @@ function extractTags(title, description) {
   return tags.length ? tags : ['cybersecurity'];
 }
 
-// Enhanced AI summary generation
+// Extract technical details from content
+function extractTechnicalDetails(content) {
+  const details = [];
+  
+  // Extract CVEs
+  const cveMatches = content.match(/\bCVE-\d{4}-\d{4,7}\b/g) || [];
+  details.push(...cveMatches.map(cve => `Vulnerability: ${cve}`));
+
+  // Extract CVSS scores
+  const cvssMatches = content.match(/CVSS:?\s*[\d.]+\s*\(?\w+\)?/gi) || [];
+  details.push(...cvssMatches.map(cvss => `Severity Score: ${cvss.trim()}`));
+
+  // Extract other technical indicators
+  if (content.includes('zero-day')) details.push('Zero-day vulnerability');
+  if (content.includes('remote code execution')) details.push('Remote Code Execution (RCE)');
+  if (content.includes('privilege escalation')) details.push('Privilege Escalation');
+
+  return details.slice(0, 3);
+}
+
+// Enhanced IOC extraction function
+function extractIOCs(content) {
+  const iocs = {
+    hashes: [],
+    domains: [],
+    ips: [],
+    urls: [],
+    emails: [],
+    cves: []
+  };
+
+  // Extract MD5, SHA1, SHA256 hashes
+  iocs.hashes = [
+    ...(content.match(/\b[a-fA-F0-9]{32}\b/g) || []), // MD5
+    ...(content.match(/\b[a-fA-F0-9]{40}\b/g) || []), // SHA1
+    ...(content.match(/\b[a-fA-F0-9]{64}\b/g) || [])  // SHA256
+  ].filter((v, i, a) => a.indexOf(v) === i); // Remove duplicates
+
+  // Extract domains (more comprehensive regex)
+  iocs.domains = (content.match(/(?:[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?\.)+[a-zA-Z]{2,}/g) || [])
+    .filter(domain => !domain.match(/\.(com|org|net|gov|edu|io|html?|js|css|png|jpg|jpeg|gif|svg|xml|json)$/i)) // Filter out common TLDs and file extensions
+    .filter((v, i, a) => a.indexOf(v) === i);
+
+  // Extract IP addresses (including IPv6)
+  iocs.ips = [
+    ...(content.match(/\b(?:\d{1,3}\.){3}\d{1,3}\b/g) || []), // IPv4
+    ...(content.match(/\b(?:[A-F0-9]{1,4}:){7}[A-F0-9]{1,4}\b/gi) || []) // IPv6
+  ].filter((v, i, a) => a.indexOf(v) === i);
+
+  // Extract URLs (excluding common image/file extensions)
+  iocs.urls = (content.match(/https?:\/\/[^\s"'<>]+/gi) || [])
+    .filter(url => !url.match(/\.(jpg|png|gif|pdf|jpeg|svg|css|js|mp4|mp3|avi|mov|wav|zip|tar|gz|rar)$/i))
+    .filter((v, i, a) => a.indexOf(v) === i);
+
+  // Extract emails
+  iocs.emails = (content.match(/\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Z|a-z]{2,}\b/g) || [])
+    .filter((v, i, a) => a.indexOf(v) === i);
+
+  // Extract CVEs
+  iocs.cves = (content.match(/\bCVE-\d{4}-\d{4,7}\b/g) || [])
+    .filter((v, i, a) => a.indexOf(v) === i);
+
+  // Filter out empty arrays
+  Object.keys(iocs).forEach(key => {
+    if (Array.isArray(iocs[key]) && iocs[key].length === 0) {
+      delete iocs[key];
+    }
+  });
+
+  return iocs;
+}
+
+// Enhanced AI summary generation with IOCs
 async function generateAISummary(content) {
   try {
     const technicalDetails = extractTechnicalDetails(content);
+    const iocs = extractIOCs(content);
     const contentToSummarize = content.substring(0, 3000);
 
     const response = await axios.post(
@@ -190,31 +262,17 @@ async function generateAISummary(content) {
       bulletPoints.push(...technicalDetails.map(detail => `  • ${detail}`));
     }
 
-    return bulletPoints.join('\n');
+    return {
+      summary: bulletPoints.join('\n'),
+      iocs: iocs
+    };
   } catch (error) {
     console.error('Error generating AI summary:', error);
-    return generateFallbackSummary(content);
+    return {
+      summary: generateFallbackSummary(content),
+      iocs: extractIOCs(content) // Ensure IOCs are extracted even if summary fails
+    };
   }
-}
-
-// Extract technical details from content
-function extractTechnicalDetails(content) {
-  const details = [];
-  
-  // Extract CVEs
-  const cveMatches = content.match(/\bCVE-\d{4}-\d{4,7}\b/g) || [];
-  details.push(...cveMatches.map(cve => `Vulnerability: ${cve}`));
-
-  // Extract CVSS scores
-  const cvssMatches = content.match(/CVSS:?\s*[\d.]+\s*\(?\w+\)?/gi) || [];
-  details.push(...cvssMatches.map(cvss => `Severity Score: ${cvss.trim()}`));
-
-  // Extract other technical indicators
-  if (content.includes('zero-day')) details.push('Zero-day vulnerability');
-  if (content.includes('remote code execution')) details.push('Remote Code Execution (RCE)');
-  if (content.includes('privilege escalation')) details.push('Privilege Escalation');
-
-  return details.slice(0, 3);
 }
 
 // Fallback summary generation
@@ -237,44 +295,7 @@ function generateFallbackSummary(content) {
 
   return bulletPoints.join('\n');
 }
-app.post('/summarize-pdf', async (req, res) => {
-  try {
-    const { content } = req.body;
 
-    if (!content) {
-      return res.status(400).json({ error: "Content is required" });
-    }
-
-    // Generate AI Summary
-    const summaryBullets = await generateAISummary(content, 5);
-
-    // Create PDF
-    const doc = new PDFDocument();
-    let buffers = [];
-
-    doc.on('data', buffers.push.bind(buffers));
-    doc.on('end', () => {
-      const pdfData = Buffer.concat(buffers);
-      res.setHeader('Content-Type', 'application/pdf');
-      res.setHeader('Content-Disposition', 'attachment; filename=summary.pdf');
-      res.send(pdfData);
-    });
-
-    doc.fontSize(20).text('🛡️ Cybersecurity News Summary', { underline: true });
-    doc.moveDown();
-
-    summaryBullets.forEach(point => {
-      doc.fontSize(12).text(point, { bulletRadius: 2 });
-      doc.moveDown(0.5);
-    });
-
-    doc.end();
-
-  } catch (err) {
-    console.error("PDF generation error:", err.message);
-    res.status(500).json({ error: "Failed to generate summary PDF" });
-  }
-});
 // API Endpoints
 app.get('/api/threats', async (req, res) => {
   try {
@@ -297,7 +318,7 @@ app.get('/api/threats', async (req, res) => {
   }
 });
 
-// AI Summarization Endpoint
+// AI Summarization Endpoint with IOCs
 app.post('/api/summarize', async (req, res) => {
   try {
     const { content, articleId } = req.body;
@@ -306,10 +327,11 @@ app.post('/api/summarize', async (req, res) => {
       return res.status(400).json({ error: "Content is required" });
     }
 
-    const summary = await generateAISummary(content);
+    const { summary, iocs } = await generateAISummary(content);
     
     res.json({ 
       summary,
+      iocs,
       articleId
     });
   } catch (error) {
