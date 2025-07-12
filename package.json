@@ -27,8 +27,10 @@
     "dotenv": "^17.0.1",
     "express": "^4.21.2",
     "html-pdf": "^3.0.1",
+    "openai": "^5.8.2",
     "pdfkit": "^0.17.1",
     "rss-parser": "^3.13.0",
+    "socket.io": "^4.8.1",
     "uuid": "^11.1.0"
   },
   "devDependencies": {
