@@ -27,19 +27,19 @@ body {
   width: 100%;
   height: 100%;
   z-index: -1;
-  opacity: 0.1;
+  opacity: 0.5;
   overflow: hidden;
   font-family: 'Courier New', monospace;
   font-size: 12px;
   line-height: 1.4;
-  color: #00d4ff;
+  color: #00bbff;
   pointer-events: none;
 }
 
 .code-line {
   position: absolute;
   white-space: nowrap;
-  animation: scrollCode 20s linear infinite;
+  animation: scrollCode 10s linear infinite;
 }
 
 .code-line:nth-child(odd) {
@@ -516,6 +516,8 @@ header {
 .ioc-section h4 {
   margin-bottom: 0.5rem;
   color: #00d4ff;
+  border-bottom: 1px solid rgba(0, 128, 255, 0.3);
+  padding-bottom: 0.5rem;
 }
 
 .ioc-list {
@@ -532,6 +534,15 @@ header {
   font-family: monospace;
   font-size: 0.85rem;
   word-break: break-all;
+}
+
+.ioc-item a {
+  color: #00d4ff;
+  text-decoration: none;
+}
+
+.ioc-item a:hover {
+  text-decoration: underline;
 }
 
 .ioc-toggle {
@@ -648,6 +659,12 @@ header {
   opacity: 1;
 }
 
+.error-state {
+  text-align: center;
+  padding: 2rem;
+  color: #ff6b6b;
+}
+
 @media (max-width: 768px) {
   .title { font-size: 2rem; }
   .stats-bar { flex-direction: column; gap: 1rem; }
@@ -677,9 +694,144 @@ header {
     grid-template-columns: 1fr;
   }
 }
+/* Sidebar Styles */
+.sidebar {
+  position: fixed;
+  top: 0;
+  left: 0;
+  height: 100vh;
+  width: 250px;
+  background: linear-gradient(180deg, #0a0a1a 0%, #1a1a2e 100%);
+  border-right: 1px solid rgba(0, 128, 255, 0.2);
+  z-index: 100;
+  transition: all 0.3s ease;
+  transform: translateX(-100%);
+}
+
+.sidebar.open {
+  transform: translateX(0);
+}
+
+.sidebar-header {
+  padding: 1.5rem;
+  border-bottom: 1px solid rgba(0, 128, 255, 0.2);
+  text-align: center;
+}
+
+.sidebar-logo {
+  font-size: 1.5rem;
+  font-weight: bold;
+  background: linear-gradient(45deg, #0080ff, #00d4ff);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+.sidebar-menu {
+  padding: 1rem 0;
+}
+
+.menu-item {
+  display: flex;
+  align-items: center;
+  padding: 1rem 1.5rem;
+  color: #b3d9ff;
+  text-decoration: none;
+  transition: all 0.3s ease;
+  border-left: 3px solid transparent;
+}
+
+.menu-item:hover {
+  background: rgba(0, 128, 255, 0.1);
+  color: #ffffff;
+  border-left: 3px solid #0080ff;
+}
+
+.menu-item.active {
+  background: rgba(0, 128, 255, 0.2);
+  color: #ffffff;
+  border-left: 3px solid #0080ff;
+}
+
+.menu-item i {
+  margin-right: 1rem;
+  width: 20px;
+  text-align: center;
+}
+
+/* Menu Toggle Styles */
+.menu-toggle {
+  position: fixed;
+  top: 20px;
+  left: 20px;
+  width: 40px;
+  height: 40px;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  cursor: pointer;
+  z-index: 1000;
+  background: rgba(0, 128, 255, 0.2);
+  border-radius: 50%;
+  border: none;
+  transition: all 0.3s ease;
+}
+
+.menu-toggle span {
+  display: block;
+  width: 20px;
+  height: 2px;
+  background: #0080ff;
+  margin: 2px 0;
+  transition: all 0.3s ease;
+}
+
+/* When sidebar is open, hide the toggle */
+.sidebar.open ~ .menu-toggle {
+  opacity: 0;
+  visibility: hidden;
+  transform: translateX(-50px);
+}
+
+/* When sidebar is closed, show the toggle */
+.sidebar:not(.open) ~ .menu-toggle {
+  opacity: 1;
+  visibility: visible;
+  transform: translateX(0);
+}
   </style>
 </head>
 <body>
+  <button class="menu-toggle" id="menuToggle">
+  <span></span>
+  <span></span>
+  <span></span>
+</button>
+  <!-- Sidebar Menu -->
+<div class="sidebar" id="sidebar">
+  <div class="sidebar-header">
+    <div class="sidebar-logo">ThreatScape Command Center</div>
+  </div>
+  
+  <div class="sidebar-menu">
+    <a href="#" class="menu-item active" id="threatIntelLink">
+      <i class="fas fa-shield-alt"></i>
+      <span>Threat Intel</span>
+    </a>
+    <a href="dashboard.html" class="menu-item" id="dashboardLink">
+      <i class="fas fa-chart-line"></i>
+      <span>Executive Dashboard</span>
+    </a>
+    <a href="#" class="menu-item" id="reportsLink">
+      <i class="fas fa-file-alt"></i>
+      <span>Reports</span>
+    </a>
+  </div>
+</div>
+
+<div class="main-content" id="mainContent">
+  <!-- Your existing content goes here -->
   <div class="code-background">
     <div class="code-line">if (threat.severity === 'critical') { executeCountermeasures(); deployPatches(); }</div>
     <div class="code-line">scan.ports([80, 443, 22, 3389]); analyze.traffic(packets); detect.anomalies();</div>
@@ -700,8 +852,8 @@ header {
   </div>
 
   <header>
-    <h1 class="title">CyberSec Intel</h1>
-    <p class="subtitle">Advanced Threat Intelligence Dashboard</p>
+    <h1 class="title">ThreatScape Command Center</h1>
+    <p class="subtitle">Live Threat Intelligence | IOC Driven | Enterprise Actionable</p>
   </header>
 
   <div class="stats-bar">
@@ -783,7 +935,12 @@ header {
         <span class="ioc-arrow">▼</span>
       </div>
       <div class="ioc-container" id="iocContainer">
-        <div id="iocContent"></div>
+        <div id="iocContent">
+          <div class="loading-summary">
+            <div class="spinner"></div>
+            Loading Indicators of Compromise...
+          </div>
+        </div>
       </div>
       
       <a href="#" target="_blank" class="source-link" id="modalLink">🔗 View Original Article</a>
@@ -797,6 +954,72 @@ const API_BASE_URL = window.location.origin;
 let currentArticles = [];
 let filteredArticles = [];
 let currentModalArticle = null;
+
+// Improved Sidebar Toggle Functionality
+function toggleSidebar() {
+  const sidebar = document.getElementById('sidebar');
+  const menuToggle = document.getElementById('menuToggle');
+  
+  sidebar.classList.toggle('open');
+  
+  // Hide menu toggle when sidebar is open
+  if (sidebar.classList.contains('open')) {
+    menuToggle.style.opacity = '0';
+    menuToggle.style.visibility = 'hidden';
+    menuToggle.style.pointerEvents = 'none';
+    
+    // Add click listener to close sidebar when clicking outside
+    setTimeout(() => {
+      document.addEventListener('click', closeSidebarOnClickOutside);
+    }, 10);
+  } else {
+    menuToggle.style.opacity = '1';
+    menuToggle.style.visibility = 'visible';
+    menuToggle.style.pointerEvents = 'auto';
+    
+    // Remove the click listener
+    document.removeEventListener('click', closeSidebarOnClickOutside);
+  }
+}
+
+// Close sidebar when clicking outside
+function closeSidebarOnClickOutside(e) {
+  const sidebar = document.getElementById('sidebar');
+  const menuToggle = document.getElementById('menuToggle');
+  
+  if (!sidebar.contains(e.target) && e.target !== menuToggle) {
+    toggleSidebar();
+  }
+}
+
+// Initialize event listeners
+document.getElementById('menuToggle').addEventListener('click', function(e) {
+  e.stopPropagation();
+  toggleSidebar();
+});
+
+// Menu item click handlers
+document.getElementById('threatIntelLink').addEventListener('click', function(e) {
+    e.preventDefault();
+    setActiveMenuItem('threatIntelLink');
+});
+
+document.getElementById('dashboardLink').addEventListener('click', function(e) {
+    setActiveMenuItem('dashboardLink');
+});
+
+document.getElementById('reportsLink').addEventListener('click', function(e) {
+    e.preventDefault();
+    setActiveMenuItem('reportsLink');
+    alert('Reports page would load here');
+});
+
+function setActiveMenuItem(activeId) {
+    document.querySelectorAll('.menu-item').forEach(item => {
+        item.classList.remove('active');
+    });
+    document.getElementById(activeId).classList.add('active');
+}
 
 // Initialize dashboard
 document.addEventListener('DOMContentLoaded', function() {
@@ -857,7 +1080,8 @@ async function loadThreats() {
         const response = await fetch(`${API_BASE_URL}/api/threats`);
         if (!response.ok) throw new Error(`HTTP ${response.status}`);
         
-        currentArticles = await response.json();
+        const data = await response.json();
+        currentArticles = data.threats || [];
         filteredArticles = [...currentArticles];
         
         displayArticles(filteredArticles);
@@ -893,7 +1117,8 @@ async function searchThreats() {
         const response = await fetch(`${API_BASE_URL}/api/threats?start=${startDate}&end=${endDate}`);
         if (!response.ok) throw new Error(`HTTP ${response.status}`);
         
-        currentArticles = await response.json();
+        const data = await response.json();
+        currentArticles = data.threats || [];
         filteredArticles = [...currentArticles];
         
         displayArticles(filteredArticles);
@@ -1032,8 +1257,6 @@ function showSummaryModal(article) {
     const modalSource = document.getElementById('modalSource');
     const modalLink = document.getElementById('modalLink');
     const modalSummary = document.getElementById('modalSummary');
-    const iocContainer = document.getElementById('iocContainer');
-    const iocContent = document.getElementById('iocContent');
 
     modalTitle.textContent = article.title;
     modalSeverity.textContent = article.severity.toUpperCase();
@@ -1043,9 +1266,14 @@ function showSummaryModal(article) {
     modalLink.href = article.url || '#';
     
     // Reset IOC section
-    iocContainer.classList.remove('expanded');
+    document.getElementById('iocContainer').classList.remove('expanded');
     document.querySelector('.ioc-arrow').textContent = '▼';
-    iocContent.innerHTML = '<div class="loading-summary"><div class="spinner"></div>Extracting IOCs...</div>';
+    document.getElementById('iocContent').innerHTML = `
+        <div class="loading-summary">
+            <div class="spinner"></div>
+            Loading Indicators of Compromise...
+        </div>
+    `;
     
     modalSummary.innerHTML = `
         <div class="loading-summary">
@@ -1067,6 +1295,7 @@ function showSummaryModal(article) {
     
     // Fetch the summary and IOCs
     fetchArticleSummary(article);
+    fetchIOCsForArticle(article.id);
 }
 
 function closeModal() {
@@ -1078,7 +1307,6 @@ function closeModal() {
 async function fetchArticleSummary(article) {
     try {
         const modalSummary = document.getElementById('modalSummary');
-        const iocContent = document.getElementById('iocContent');
         const contentToSummarize = article.description || article.title;
         
         const response = await fetch(`${API_BASE_URL}/api/summarize`, {
@@ -1122,83 +1350,132 @@ async function fetchArticleSummary(article) {
         } else {
             modalSummary.innerHTML = '<p>Could not generate summary</p>';
         }
-        
-        // Process IOCs
-        if (data.iocs) {
-            let iocHTML = '';
-            let hasIOCs = false;
-            
-            // Helper function to create IOC sections
-            const createIocSection = (title, items) => {
-                if (items && items.length > 0) {
-                    hasIOCs = true;
-                    return `
-                        <div class="ioc-section">
-                            <h4>${title}</h4>
-                            <div class="ioc-list">
-                                ${items.map(item => `<div class="ioc-item">${item}</div>`).join('')}
-                            </div>
-                        </div>
-                    `;
-                }
-                return '';
-            };
-            
-            // Add each IOC type if it has values
-            if (data.iocs.hashes && data.iocs.hashes.length > 0) {
-                iocHTML += createIocSection('Hashes', data.iocs.hashes);
-            }
-            
-            if (data.iocs.domains && data.iocs.domains.length > 0) {
-                iocHTML += createIocSection('Domains', data.iocs.domains);
-            }
-            
-            if (data.iocs.ips && data.iocs.ips.length > 0) {
-                iocHTML += createIocSection('IP Addresses', data.iocs.ips);
-            }
-            
-            if (data.iocs.urls && data.iocs.urls.length > 0) {
-                iocHTML += `
-                    <div class="ioc-section">
-                        <h4>URLs</h4>
-                        <div class="ioc-list">
-                            ${data.iocs.urls.map(url => `
-                                <div class="ioc-item">
-                                    <a href="${url.startsWith('http') ? url : 'https://' + url}" 
-                                       target="_blank" 
-                                       rel="noopener noreferrer">
-                                        ${url}
-                                    </a>
-                                </div>
-                            `).join('')}
-                        </div>
-                    </div>
-                `;
-                hasIOCs = true;
-            }
-            
-            if (data.iocs.emails && data.iocs.emails.length > 0) {
-                iocHTML += createIocSection('Emails', data.iocs.emails);
-            }
-            
-            if (data.iocs.cves && data.iocs.cves.length > 0) {
-                iocHTML += createIocSection('CVEs', data.iocs.cves);
-            }
-            
-            iocContent.innerHTML = hasIOCs ? iocHTML : '<p>No IOCs found in this article</p>';
-        } else {
-            iocContent.innerHTML = '<p>No IOCs found in this article</p>';
-        }
     } catch (error) {
         console.error('Summary generation failed:', error);
         document.getElementById('modalSummary').innerHTML = `
             <p>Error generating summary. Please try again later.</p>
             <button class="refresh-btn" onclick="fetchArticleSummary(currentModalArticle)">Retry</button>
         `;
+    }
+}
+
+async function fetchIOCsForArticle(articleId) {
+    try {
+        const response = await fetch(`${API_BASE_URL}/api/iocs/${articleId}`);
+        if (!response.ok) throw new Error(`HTTP ${response.status}`);
+        
+        const data = await response.json();
+        displayIOCs(data.iocs);
+    } catch (error) {
+        console.error('Failed to fetch IOCs:', error);
         document.getElementById('iocContent').innerHTML = `
-            <p>Error extracting IOCs. Please try again later.</p>
+            <p>Error loading IOCs. Please try again later.</p>
         `;
     }
+}
+
+function displayIOCs(iocs) {
+    const iocContent = document.getElementById('iocContent');
+    let iocHTML = '';
+    let hasIOCs = false;
+    
+    // Helper function to create IOC sections
+    const createIocSection = (title, items) => {
+        if (items && items.length > 0) {
+            hasIOCs = true;
+            return `
+                <div class="ioc-section">
+                    <h4>${title}</h4>
+                    <div class="ioc-list">
+                        ${items.map(item => `<div class="ioc-item">${item}</div>`).join('')}
+                    </div>
+                </div>
+            `;
+        }
+        return '';
+    };
+    
+    // Network IOCs
+    if (iocs.networkIOCs) {
+        const network = iocs.networkIOCs;
+        if (network.ipAddresses?.length) {
+            iocHTML += createIocSection('IP Addresses', network.ipAddresses);
+        }
+        if (network.domains?.length) {
+            iocHTML += createIocSection('Domains', network.domains);
+        }
+        if (network.urls?.length) {
+            iocHTML += `
+                <div class="ioc-section">
+                    <h4>URLs</h4>
+                    <div class="ioc-list">
+                        ${network.urls.map(url => `
+                            <div class="ioc-item">
+                                <a href="${url.startsWith('http') ? url : 'https://' + url}" 
+                                   target="_blank" 
+                                   rel="noopener noreferrer">
+                                    ${url}
+                                </a>
+                            </div>
+                        `).join('')}
+                    </div>
+                </div>
+            `;
+            hasIOCs = true;
+        }
+        if (network.emails?.length) {
+            iocHTML += createIocSection('Emails', network.emails);
+        }
+    }
+    
+    // File IOCs
+    if (iocs.fileIOCs) {
+        const file = iocs.fileIOCs;
+        if (file.hashes?.length) {
+            iocHTML += createIocSection('File Hashes', file.hashes);
+        }
+        if (file.filenames?.length) {
+            iocHTML += createIocSection('Malicious Filenames', file.filenames);
+        }
+    }
+    
+    // Threat Intelligence
+    if (iocs.threatIntelligence) {
+        const threat = iocs.threatIntelligence;
+        if (threat.cves?.length) {
+            iocHTML += createIocSection('CVEs', threat.cves);
+        }
+        if (threat.malwareFamilies?.length) {
+            iocHTML += createIocSection('Malware Families', threat.malwareFamilies);
+        }
+        if (threat.aptGroups?.length) {
+            iocHTML += createIocSection('APT Groups', threat.aptGroups);
+        }
+        if (threat.ttps?.length) {
+            iocHTML += createIocSection('TTPs (Tactics, Techniques & Procedures)', threat.ttps);
+        }
+    }
+    
+    // Host IOCs
+    if (iocs.hostIOCs) {
+        const host = iocs.hostIOCs;
+        if (host.registryKeys?.length) {
+            iocHTML += createIocSection('Registry Keys', host.registryKeys);
+        }
+        if (host.processes?.length) {
+            iocHTML += createIocSection('Suspicious Processes', host.processes);
+        }
+    }
+    
+    // Behavioral IOCs
+    if (iocs.behavioralIOCs) {
+        const behavioral = iocs.behavioralIOCs;
+        if (behavioral.scriptExecution?.length) {
+            iocHTML += createIocSection('Script Execution Patterns', behavioral.scriptExecution);
+        }
+    }
+    
+    iocContent.innerHTML = hasIOCs ? iocHTML : '<p>No IOCs found in this article</p>';
 }
 
 function updateStats() {
@@ -1286,4 +1563,4 @@ window.searchThreats = searchThreats;
 window.fetchArticleSummary = fetchArticleSummary;
   </script>
 </body>
-</html>
+  </html>
