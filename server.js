@@ -4,15 +4,20 @@ const cors = require('cors');
 const axios = require('axios');
 const { v4: uuidv4 } = require('uuid');
 const Parser = require('rss-parser');
+const http = require('http');
+const socketIo = require('socket.io');
 const parser = new Parser();
 
 const app = express();
-const PORT = process.env.PORT || 3000;
+const server = http.createServer(app);
+const io = socketIo(server, {
+  cors: {
+    origin: "*",
+    methods: ["GET", "POST"]
+  }
+});
 
-// Middleware
-app.use(cors());
-app.use(express.json());
-app.use(express.static('public'));
+const PORT = process.env.PORT || 3000;
 
 // Hugging Face Configuration
 const HF_API_TOKEN = process.env.HF_API_TOKEN;
@@ -57,6 +62,379 @@ let articleCache = [];
 let lastFetchTime = null;
 const CACHE_DURATION = 15 * 60 * 1000; // 15 minutes
 
+// Middleware
+app.use(cors());
+app.use(express.json());
+app.use(express.static('public'));
+
+// Socket.IO integration
+io.on('connection', (socket) => {
+  console.log('New client connected');
+
+  // Send initial data
+  const sendInitialData = async () => {
+    try {
+      const threats = await fetchAllArticles();
+      socket.emit('threatIntelUpdate', { 
+        threats,
+        stats: generateStats(threats)
+      });
+      socket.emit('recentAlertsUpdate', { 
+        alerts: threats.slice(0, 5),
+        stats: generateStats(threats.slice(0, 5))
+      });
+    } catch (error) {
+      console.error('Error sending initial data:', error);
+    }
+  };
+
+  sendInitialData();
+
+  // Set up periodic updates
+  const updateInterval = setInterval(async () => {
+    try {
+      const threats = await fetchAllArticles();
+      io.emit('threatIntelUpdate', { 
+        threats,
+        stats: generateStats(threats)
+      });
+    } catch (error) {
+      console.error('Error during periodic update:', error);
+    }
+  }, 30000); // Update every 30 seconds
+
+  socket.on('disconnect', () => {
+    console.log('Client disconnected');
+    clearInterval(updateInterval);
+  });
+
+  // Handle initial data request from dashboard
+  socket.on('getInitialData', async () => {
+    try {
+      const threats = await fetchAllArticles();
+      socket.emit('threatIntelUpdate', { 
+        threats,
+        stats: generateStats(threats)
+      });
+      socket.emit('recentAlertsUpdate', { 
+        alerts: threats.slice(0, 5),
+        stats: generateStats(threats.slice(0, 5))
+      });
+    } catch (error) {
+      console.error('Error sending initial data to dashboard:', error);
+    }
+  });
+
+  // Handle summary requests
+  socket.on('requestSummary', async ({ content, articleId }, callback) => {
+    try {
+      const { summary, iocs } = await generateAISummary(content);
+      callback({
+        success: true,
+        summary,
+        iocs,
+        articleId
+      });
+    } catch (error) {
+      console.error('Error generating summary:', error);
+      callback({
+        success: false,
+        error: error.message
+      });
+    }
+  });
+});
+
+// Generate statistics for threats
+function generateStats(threats) {
+  const severityCounts = {
+    critical: 0,
+    high: 0,
+    medium: 0,
+    low: 0
+  };
+
+  const sourceCounts = {};
+  const tagCounts = {};
+  let totalIOCs = 0;
+
+  threats.forEach(threat => {
+    severityCounts[threat.severity]++;
+    
+    if (!sourceCounts[threat.source]) {
+      sourceCounts[threat.source] = 0;
+    }
+    sourceCounts[threat.source]++;
+    
+    if (threat.tags) {
+      threat.tags.forEach(tag => {
+        if (!tagCounts[tag]) {
+          tagCounts[tag] = 0;
+        }
+        tagCounts[tag]++;
+      });
+    }
+    
+    if (threat.iocs) {
+      totalIOCs += countIOCs(threat.iocs);
+    }
+  });
+
+  return {
+    totalThreats: threats.length,
+    severityCounts,
+    sourceCounts,
+    tagCounts,
+    totalIOCs,
+    lastUpdated: new Date().toISOString()
+  };
+}
+
+// Comprehensive IOC extraction function
+function extractIOCs(content) {
+  const text = content.toLowerCase();
+  const originalContent = content;
+  
+  const iocs = {
+    // Network-Based IOCs
+    networkIOCs: {
+      ipAddresses: [],
+      domains: [],
+      urls: [],
+      emails: [],
+      networkArtifacts: []
+    },
+    
+    // File-Based IOCs
+    fileIOCs: {
+      hashes: [],
+      filenames: [],
+      filePaths: [],
+      executableSignatures: []
+    },
+    
+    // Host-Based IOCs
+    hostIOCs: {
+      registryKeys: [],
+      scheduledTasks: [],
+      processes: [],
+      mutexes: []
+    },
+    
+    // Behavioral IOCs
+    behavioralIOCs: {
+      systemBehavior: [],
+      userBehavior: [],
+      scriptExecution: []
+    },
+    
+    // Threat Intelligence Tags
+    threatIntelligence: {
+      malwareFamilies: [],
+      aptGroups: [],
+      ttps: [],
+      cves: []
+    }
+  };
+
+  // Network-Based IOCs
+  // Extract IP addresses (IPv4 and IPv6)
+  iocs.networkIOCs.ipAddresses = [
+    ...(originalContent.match(/\b(?:\d{1,3}\.){3}\d{1,3}\b/g) || []), // IPv4
+    ...(originalContent.match(/\b(?:[A-F0-9]{1,4}:){7}[A-F0-9]{1,4}\b/gi) || []) // IPv6
+  ].filter((v, i, a) => a.indexOf(v) === i);
+
+  // Extract domains (C2 domains)
+  iocs.networkIOCs.domains = (originalContent.match(/(?:[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?\.)+[a-zA-Z]{2,}/g) || [])
+    .filter(domain => !domain.match(/\.(html?|js|css|png|jpg|jpeg|gif|svg|xml|json|pdf|doc|docx|xls|xlsx|ppt|pptx)$/i))
+    .filter(domain => !domain.match(/^(www\.|blog\.|news\.|support\.|help\.|docs\.|api\.|cdn\.|static\.)/i))
+    .filter((v, i, a) => a.indexOf(v) === i);
+
+  // Extract URLs (malicious links)
+  iocs.networkIOCs.urls = (originalContent.match(/https?:\/\/[^\s"'<>]+/gi) || [])
+    .filter(url => !url.match(/\.(jpg|png|gif|pdf|jpeg|svg|css|js|mp4|mp3|avi|mov|wav|zip|tar|gz|rar)$/i))
+    .filter((v, i, a) => a.indexOf(v) === i);
+
+  // Extract emails (phishing campaign senders)
+  iocs.networkIOCs.emails = (originalContent.match(/\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Z|a-z]{2,}\b/g) || [])
+    .filter((v, i, a) => a.indexOf(v) === i);
+
+  // Extract network artifacts (ports, protocols)
+  const portMatches = originalContent.match(/port\s+(\d+)/gi) || [];
+  const protocolMatches = originalContent.match(/(tcp|udp|http|https|ftp|ssh|dns|smtp|pop3|imap)(?:\s+port\s+\d+)?/gi) || [];
+  iocs.networkIOCs.networkArtifacts = [...portMatches, ...protocolMatches].filter((v, i, a) => a.indexOf(v) === i);
+
+  // File-Based IOCs
+  // Extract file hashes (MD5, SHA1, SHA256)
+  iocs.fileIOCs.hashes = [
+    ...(originalContent.match(/\b[a-fA-F0-9]{32}\b/g) || []), // MD5
+    ...(originalContent.match(/\b[a-fA-F0-9]{40}\b/g) || []), // SHA1
+    ...(originalContent.match(/\b[a-fA-F0-9]{64}\b/g) || [])  // SHA256
+  ].filter((v, i, a) => a.indexOf(v) === i);
+
+  // Extract filenames (known malware/dropper names)
+  const filenamePatterns = [
+    /\w+\.(?:exe|dll|bat|cmd|scr|vbs|js|jar|msi|zip|rar|7z|pdf|doc|docx|xls|xlsx|ppt|pptx)/gi,
+    /["\']([^"']+\.(?:exe|dll|bat|cmd|scr|vbs|js|jar|msi))["\']/gi
+  ];
+  filenamePatterns.forEach(pattern => {
+    const matches = originalContent.match(pattern) || [];
+    iocs.fileIOCs.filenames.push(...matches);
+  });
+  iocs.fileIOCs.filenames = [...new Set(iocs.fileIOCs.filenames)];
+
+  // Extract file paths
+  const pathPatterns = [
+    /[A-Za-z]:\\[^\s"'<>|]+/g, // Windows paths
+    /\/[^\s"'<>|]+\/[^\s"'<>|]+/g, // Unix paths
+    /%[A-Z_]+%\\[^\s"'<>|]+/g, // Windows environment variables
+    /\$[A-Z_]+\/[^\s"'<>|]+/g // Unix environment variables
+  ];
+  pathPatterns.forEach(pattern => {
+    const matches = originalContent.match(pattern) || [];
+    iocs.fileIOCs.filePaths.push(...matches);
+  });
+  iocs.fileIOCs.filePaths = [...new Set(iocs.fileIOCs.filePaths)];
+
+  // Extract executable signatures
+  const signatureMatches = originalContent.match(/(?:certificate|signature|pe|portable executable|digital signature)[^\n.]{0,100}/gi) || [];
+  iocs.fileIOCs.executableSignatures = [...new Set(signatureMatches)];
+
+  // Host-Based IOCs
+  // Extract registry keys
+  const registryPatterns = [
+    /HKEY_[A-Z_]+\\[^\s"'<>|]+/gi,
+    /HKLM\\[^\s"'<>|]+/gi,
+    /HKCU\\[^\s"'<>|]+/gi,
+    /SOFTWARE\\[^\s"'<>|]+/gi
+  ];
+  registryPatterns.forEach(pattern => {
+    const matches = originalContent.match(pattern) || [];
+    iocs.hostIOCs.registryKeys.push(...matches);
+  });
+  iocs.hostIOCs.registryKeys = [...new Set(iocs.hostIOCs.registryKeys)];
+
+  // Extract scheduled tasks/cron jobs
+  const taskMatches = [
+    ...(originalContent.match(/schtasks[^\n.]{0,100}/gi) || []),
+    ...(originalContent.match(/crontab[^\n.]{0,100}/gi) || []),
+    ...(originalContent.match(/scheduled task[^\n.]{0,100}/gi) || [])
+  ];
+  iocs.hostIOCs.scheduledTasks = [...new Set(taskMatches)];
+
+  // Extract processes and services
+  const processMatches = [
+    ...(originalContent.match(/process[^\n.]{0,100}/gi) || []),
+    ...(originalContent.match(/service[^\n.]{0,100}/gi) || []),
+    ...(originalContent.match(/\w+\.exe/gi) || [])
+  ];
+  iocs.hostIOCs.processes = [...new Set(processMatches)];
+
+  // Extract mutexes
+  const mutexMatches = originalContent.match(/mutex[^\n.]{0,100}/gi) || [];
+  iocs.hostIOCs.mutexes = [...new Set(mutexMatches)];
+
+  // Behavioral IOCs
+  // Extract system behavior patterns
+  const behaviorPatterns = [
+    /(?:cpu|memory|disk|network)\s+usage[^\n.]{0,100}/gi,
+    /(?:unusual|suspicious|anomalous)\s+(?:activity|behavior|pattern)[^\n.]{0,100}/gi,
+    /(?:high|excessive|abnormal)\s+(?:cpu|memory|disk|network)[^\n.]{0,100}/gi
+  ];
+  behaviorPatterns.forEach(pattern => {
+    const matches = originalContent.match(pattern) || [];
+    iocs.behavioralIOCs.systemBehavior.push(...matches);
+  });
+  iocs.behavioralIOCs.systemBehavior = [...new Set(iocs.behavioralIOCs.systemBehavior)];
+
+  // Extract user behavior anomalies
+  const userBehaviorMatches = [
+    ...(originalContent.match(/(?:login|logon|authentication)[^\n.]{0,100}/gi) || []),
+    ...(originalContent.match(/(?:unauthorized|unusual|suspicious)\s+(?:access|login|activity)[^\n.]{0,100}/gi) || [])
+  ];
+  iocs.behavioralIOCs.userBehavior = [...new Set(userBehaviorMatches)];
+
+  // Extract PowerShell/Script execution
+  const scriptMatches = [
+    ...(originalContent.match(/powershell[^\n.]{0,100}/gi) || []),
+    ...(originalContent.match(/cmd\.exe[^\n.]{0,100}/gi) || []),
+    ...(originalContent.match(/(?:obfuscated|encoded|base64)[^\n.]{0,100}/gi) || []),
+    ...(originalContent.match(/wscript[^\n.]{0,100}/gi) || []),
+    ...(originalContent.match(/cscript[^\n.]{0,100}/gi) || [])
+  ];
+  iocs.behavioralIOCs.scriptExecution = [...new Set(scriptMatches)];
+
+  // Threat Intelligence Tags
+  // Extract malware family names
+  const malwareFamilies = [
+    'emotet', 'cobalt strike', 'trickbot', 'qakbot', 'ryuk', 'conti', 'ransomware',
+    'trojans', 'backdoor', 'rootkit', 'keylogger', 'spyware', 'adware', 'worm',
+    'virus', 'botnet', 'banking trojan', 'rat', 'stealer', 'loader', 'dropper',
+    'mimikatz', 'metasploit', 'empire', 'covenant', 'pupy', 'sliver', 'havoc',
+    'lockbit', 'blackcat', 'royal', 'clop', 'akira', 'play', 'bianlian'
+  ];
+  
+  malwareFamilies.forEach(family => {
+    if (text.includes(family)) {
+      iocs.threatIntelligence.malwareFamilies.push(family);
+    }
+  });
+  iocs.threatIntelligence.malwareFamilies = [...new Set(iocs.threatIntelligence.malwareFamilies)];
+
+  // Extract APT groups
+  const aptGroups = [
+    'apt1', 'apt28', 'apt29', 'apt32', 'apt34', 'apt40', 'apt41', 'lazarus',
+    'fin7', 'fin8', 'carbanak', 'ta505', 'ta506', 'wizard spider', 'fancy bear',
+    'cozy bear', 'sandworm', 'turla', 'equation group', 'oceanlotus', 'putter panda',
+    'comment crew', 'dragonfly', 'energetic bear', 'kimsuky', 'andariel', 'bluenoroff'
+  ];
+  
+  aptGroups.forEach(group => {
+    if (text.includes(group)) {
+      iocs.threatIntelligence.aptGroups.push(group);
+    }
+  });
+  iocs.threatIntelligence.aptGroups = [...new Set(iocs.threatIntelligence.aptGroups)];
+
+  // Extract TTPs (MITRE ATT&CK techniques)
+  const ttps = [
+    'spearphishing', 'watering hole', 'drive-by compromise', 'exploit public-facing application',
+    'valid accounts', 'remote desktop protocol', 'lateral movement', 'privilege escalation',
+    'credential dumping', 'pass the hash', 'golden ticket', 'silver ticket', 'dcsync',
+    'powershell empire', 'living off the land', 'fileless malware', 'process injection',
+    'dll injection', 'code injection', 'reflective dll loading', 'process hollowing',
+    'command and control', 'c2', 'data exfiltration', 'persistence', 'defense evasion',
+    'discovery', 'collection', 'impact', 'initial access', 'execution'
+  ];
+  
+  ttps.forEach(ttp => {
+    if (text.includes(ttp)) {
+      iocs.threatIntelligence.ttps.push(ttp);
+    }
+  });
+  iocs.threatIntelligence.ttps = [...new Set(iocs.threatIntelligence.ttps)];
+
+  // Extract CVEs
+  iocs.threatIntelligence.cves = (originalContent.match(/\bCVE-\d{4}-\d{4,7}\b/g) || [])
+    .filter((v, i, a) => a.indexOf(v) === i);
+
+  // Filter out empty arrays and categories
+  Object.keys(iocs).forEach(category => {
+    Object.keys(iocs[category]).forEach(key => {
+      if (Array.isArray(iocs[category][key]) && iocs[category][key].length === 0) {
+        delete iocs[category][key];
+      }
+    });
+    
+    // Remove empty categories
+    if (Object.keys(iocs[category]).length === 0) {
+      delete iocs[category];
+    }
+  });
+
+  return iocs;
+}
+
 // Fetch articles from all sources
 async function fetchAllArticles() {
   const now = Date.now();
@@ -65,27 +443,20 @@ async function fetchAllArticles() {
     return articleCache;
   }
 
-  const allArticles = [];
-  
   try {
-    const fetchPromises = NEWS_SOURCES.map(source => {
-      if (source.type === 'rss') {
-        return fetchRSSFeed(source);
-      }
-      return Promise.resolve([]);
-    });
-
-    const results = await Promise.allSettled(fetchPromises);
+    const fetchPromises = NEWS_SOURCES.map(source => fetchRSSFeed(source));
+    const results = await Promise.all(fetchPromises);
     
-    results.forEach(result => {
-      if (result.status === 'fulfilled') {
-        allArticles.push(...result.value);
-      }
-    });
-
-    articleCache = processArticles(allArticles);
+    articleCache = results.flat().map(article => ({
+      ...article,
+      id: uuidv4(),
+      severity: determineSeverity(article.title, article.description),
+      iocs: extractIOCs(article.title + ' ' + article.description),
+      tags: extractTags(article.title, article.description),
+      technicalDetails: extractTechnicalDetails(article.title + ' ' + article.description)
+    }));
+    
     lastFetchTime = now;
-    
     return articleCache;
   } catch (error) {
     console.error('Error fetching articles:', error);
@@ -98,13 +469,11 @@ async function fetchRSSFeed(source) {
   try {
     const feed = await parser.parseURL(source.url);
     return feed.items.map(item => ({
-      id: uuidv4(),
       title: item.title,
-      description: item.contentSnippet || item.content || '',
+      description: item.contentSnippet || item.content || item.summary || '',
       url: item.link,
       source: source.name,
-      publishedAt: item.isoDate || item.pubDate || new Date().toISOString(),
-      severity: determineSeverity(item.title, item.content)
+      publishedAt: item.isoDate || item.pubDate || new Date().toISOString()
     }));
   } catch (error) {
     console.error(`Error fetching ${source.name}:`, error);
@@ -128,14 +497,6 @@ function determineSeverity(title, content) {
   return 'low';
 }
 
-// Process and normalize articles
-function processArticles(articles) {
-  return articles.map(article => ({
-    ...article,
-    tags: extractTags(article.title, article.description)
-  }));
-}
-
 // Extract tags from content
 function extractTags(title, description) {
   const text = `${title} ${description}`.toLowerCase();
@@ -147,6 +508,10 @@ function extractTags(title, description) {
   if (text.includes('vulnerability')) tags.push('vulnerability');
   if (text.includes('breach')) tags.push('breach');
   if (text.includes('iot')) tags.push('iot');
+  if (text.includes('zero-day')) tags.push('zero-day');
+  if (text.includes('exploit')) tags.push('exploit');
+  if (text.includes('apt')) tags.push('apt');
+  if (text.includes('botnet')) tags.push('botnet');
   
   return tags.length ? tags : ['cybersecurity'];
 }
@@ -167,60 +532,28 @@ function extractTechnicalDetails(content) {
   if (content.includes('zero-day')) details.push('Zero-day vulnerability');
   if (content.includes('remote code execution')) details.push('Remote Code Execution (RCE)');
   if (content.includes('privilege escalation')) details.push('Privilege Escalation');
+  if (content.includes('buffer overflow')) details.push('Buffer Overflow');
+  if (content.includes('sql injection')) details.push('SQL Injection');
+  if (content.includes('cross-site scripting')) details.push('Cross-Site Scripting (XSS)');
 
-  return details.slice(0, 3);
+  return details.slice(0, 5);
 }
 
-// Enhanced IOC extraction function
-function extractIOCs(content) {
-  const iocs = {
-    hashes: [],
-    domains: [],
-    ips: [],
-    urls: [],
-    emails: [],
-    cves: []
-  };
-
-  // Extract MD5, SHA1, SHA256 hashes
-  iocs.hashes = [
-    ...(content.match(/\b[a-fA-F0-9]{32}\b/g) || []), // MD5
-    ...(content.match(/\b[a-fA-F0-9]{40}\b/g) || []), // SHA1
-    ...(content.match(/\b[a-fA-F0-9]{64}\b/g) || [])  // SHA256
-  ].filter((v, i, a) => a.indexOf(v) === i); // Remove duplicates
-
-  // Extract domains (more comprehensive regex)
-  iocs.domains = (content.match(/(?:[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?\.)+[a-zA-Z]{2,}/g) || [])
-    .filter(domain => !domain.match(/\.(com|org|net|gov|edu|io|html?|js|css|png|jpg|jpeg|gif|svg|xml|json)$/i)) // Filter out common TLDs and file extensions
-    .filter((v, i, a) => a.indexOf(v) === i);
-
-  // Extract IP addresses (including IPv6)
-  iocs.ips = [
-    ...(content.match(/\b(?:\d{1,3}\.){3}\d{1,3}\b/g) || []), // IPv4
-    ...(content.match(/\b(?:[A-F0-9]{1,4}:){7}[A-F0-9]{1,4}\b/gi) || []) // IPv6
-  ].filter((v, i, a) => a.indexOf(v) === i);
-
-  // Extract URLs (excluding common image/file extensions)
-  iocs.urls = (content.match(/https?:\/\/[^\s"'<>]+/gi) || [])
-    .filter(url => !url.match(/\.(jpg|png|gif|pdf|jpeg|svg|css|js|mp4|mp3|avi|mov|wav|zip|tar|gz|rar)$/i))
-    .filter((v, i, a) => a.indexOf(v) === i);
-
-  // Extract emails
-  iocs.emails = (content.match(/\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Z|a-z]{2,}\b/g) || [])
-    .filter((v, i, a) => a.indexOf(v) === i);
-
-  // Extract CVEs
-  iocs.cves = (content.match(/\bCVE-\d{4}-\d{4,7}\b/g) || [])
-    .filter((v, i, a) => a.indexOf(v) === i);
-
-  // Filter out empty arrays
-  Object.keys(iocs).forEach(key => {
-    if (Array.isArray(iocs[key]) && iocs[key].length === 0) {
-      delete iocs[key];
+// Count total IOCs for display purposes
+function countIOCs(iocs) {
+  let total = 0;
+  
+  Object.values(iocs).forEach(category => {
+    if (typeof category === 'object' && category !== null) {
+      Object.values(category).forEach(arr => {
+        if (Array.isArray(arr)) {
+          total += arr.length;
+        }
+      });
     }
   });
-
-  return iocs;
+  
+  return total;
 }
 
 // Enhanced AI summary generation with IOCs
@@ -245,7 +578,7 @@ async function generateAISummary(content) {
           Authorization: `Bearer ${HF_API_TOKEN}`,
           'Content-Type': 'application/json'
         },
-        timeout: 30000
+        timeout: 60000
       }
     );
 
@@ -311,10 +644,149 @@ app.get('/api/threats', async (req, res) => {
       });
     }
 
-    res.json(results);
+    res.json({
+      total: results.length,
+      threats: results,
+      stats: generateStats(results),
+      lastUpdated: new Date().toISOString()
+    });
   } catch (error) {
     console.error('Error in /api/threats:', error);
     res.status(500).json({ error: "Failed to fetch threats" });
+  }
+});
+
+// Get IOCs for a specific article
+app.get('/api/iocs/:articleId', async (req, res) => {
+  try {
+    const { articleId } = req.params;
+    const allArticles = await fetchAllArticles();
+    
+    const article = allArticles.find(a => a.id === articleId);
+    if (!article) {
+      return res.status(404).json({ error: "Article not found" });
+    }
+
+    res.json({
+      articleId,
+      title: article.title,
+      source: article.source,
+      iocs: article.iocs || {},
+      technicalDetails: article.technicalDetails || [],
+      severity: article.severity,
+      publishedAt: article.publishedAt,
+      iocCount: countIOCs(article.iocs || {})
+    });
+  } catch (error) {
+    console.error('Error in /api/iocs:', error);
+    res.status(500).json({ error: "Failed to fetch IOCs" });
+  }
+});
+
+// Get all IOCs across all articles
+app.get('/api/iocs', async (req, res) => {
+  try {
+    const allArticles = await fetchAllArticles();
+    
+    const aggregatedIOCs = {
+      networkIOCs: {
+        ipAddresses: [],
+        domains: [],
+        urls: [],
+        emails: [],
+        networkArtifacts: []
+      },
+      fileIOCs: {
+        hashes: [],
+        filenames: [],
+        filePaths: [],
+        executableSignatures: []
+      },
+      hostIOCs: {
+        registryKeys: [],
+        scheduledTasks: [],
+        processes: [],
+        mutexes: []
+      },
+      behavioralIOCs: {
+        systemBehavior: [],
+        userBehavior: [],
+        scriptExecution: []
+      },
+      threatIntelligence: {
+        malwareFamilies: [],
+        aptGroups: [],
+        ttps: [],
+        cves: []
+      }
+    };
+
+    // Aggregate all IOCs
+    allArticles.forEach(article => {
+      if (article.iocs) {
+        Object.keys(aggregatedIOCs).forEach(categoryKey => {
+          if (article.iocs[categoryKey]) {
+            Object.keys(aggregatedIOCs[categoryKey]).forEach(iocType => {
+              if (article.iocs[categoryKey][iocType]) {
+                aggregatedIOCs[categoryKey][iocType].push(...article.iocs[categoryKey][iocType]);
+              }
+            });
+          }
+        });
+      }
+    });
+
+    // Remove duplicates
+    Object.keys(aggregatedIOCs).forEach(categoryKey => {
+      Object.keys(aggregatedIOCs[categoryKey]).forEach(iocType => {
+        aggregatedIOCs[categoryKey][iocType] = [...new Set(aggregatedIOCs[categoryKey][iocType])];
+      });
+    });
+
+    // Calculate summary statistics
+    const summary = {
+      network: {
+        totalIPs: aggregatedIOCs.networkIOCs.ipAddresses?.length || 0,
+        totalDomains: aggregatedIOCs.networkIOCs.domains?.length || 0,
+        totalURLs: aggregatedIOCs.networkIOCs.urls?.length || 0,
+        totalEmails: aggregatedIOCs.networkIOCs.emails?.length || 0,
+        totalNetworkArtifacts: aggregatedIOCs.networkIOCs.networkArtifacts?.length || 0
+      },
+      file: {
+        totalHashes: aggregatedIOCs.fileIOCs.hashes?.length || 0,
+        totalFilenames: aggregatedIOCs.fileIOCs.filenames?.length || 0,
+        totalFilePaths: aggregatedIOCs.fileIOCs.filePaths?.length || 0,
+        totalSignatures: aggregatedIOCs.fileIOCs.executableSignatures?.length || 0
+      },
+      host: {
+        totalRegistryKeys: aggregatedIOCs.hostIOCs.registryKeys?.length || 0,
+        totalScheduledTasks: aggregatedIOCs.hostIOCs.scheduledTasks?.length || 0,
+        totalProcesses: aggregatedIOCs.hostIOCs.processes?.length || 0,
+        totalMutexes: aggregatedIOCs.hostIOCs.mutexes?.length || 0
+      },
+      behavioral: {
+        totalSystemBehavior: aggregatedIOCs.behavioralIOCs.systemBehavior?.length || 0,
+        totalUserBehavior: aggregatedIOCs.behavioralIOCs.userBehavior?.length || 0,
+        totalScriptExecution: aggregatedIOCs.behavioralIOCs.scriptExecution?.length || 0
+      },
+      threatIntel: {
+        totalMalwareFamilies: aggregatedIOCs.threatIntelligence.malwareFamilies?.length || 0,
+        totalAPTGroups: aggregatedIOCs.threatIntelligence.aptGroups?.length || 0,
+        totalTTPs: aggregatedIOCs.threatIntelligence.ttps?.length || 0,
+        totalCVEs: aggregatedIOCs.threatIntelligence.cves?.length || 0
+      }
+    };
+
+    res.json({
+      totalArticles: allArticles.length,
+      articlesWithIOCs: allArticles.filter(a => a.iocs && Object.keys(a.iocs).length > 0).length,
+      aggregatedIOCs,
+      summary,
+      lastUpdated: new Date().toISOString()
+    });
+  } catch (error) {
+    console.error('Error in /api/iocs:', error);
+    res.status(500).json({ error: "Failed to fetch aggregated IOCs" });
   }
 });
 
@@ -355,23 +827,35 @@ app.get('/health', (req, res) => {
     timestamp: new Date(),
     sources: NEWS_SOURCES.map(s => s.name),
     lastFetchTime: lastFetchTime ? new Date(lastFetchTime) : null,
-    hfStatus: HF_API_TOKEN ? "Configured" : "Missing Token"
+    hfStatus: HF_API_TOKEN ? "Configured" : "Missing Token",
+    articlesInCache: articleCache.length,
+    articlesWithIOCs: articleCache.filter(a => a.iocs && Object.keys(a.iocs).length > 0).length,
+    socketConnections: io.engine.clientsCount
   });
 });
 
 // Start server
-app.listen(PORT, async () => {
-  console.log(`Server running on http://localhost:${PORT}`);
+server.listen(PORT, async () => {
+  console.log(`\n🚀 Cybersecurity Threat Intelligence Server running on http://localhost:${PORT}`);
+  console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
+  console.log('\n🎯 Available endpoints:');
+  console.log('  📊 /api/threats - Combined threat intelligence');
+  console.log('  🔍 /api/iocs - Indicators of Compromise');
+  console.log('  🤖 /api/summarize - Threat summaries');
+  console.log('  🏥 /health - System health check');
+  console.log('\n📡 Socket.IO: Real-time threat broadcasting enabled');
+  console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n');
   
   if (!HF_API_TOKEN) {
-    console.error('Hugging Face API token not found in environment variables');
+    console.error('⚠️  Hugging Face API token not found in environment variables');
   } else {
-    console.log('Hugging Face API connected');
+    console.log('🤖 Hugging Face AI summarization enabled');
   }
   
   try {
     await fetchAllArticles();
-    console.log('Initial article fetch completed');
+    console.log('\n🔍 Initial article fetch completed');
+    console.log(`📊 Articles with IOCs: ${articleCache.filter(a => a.iocs && Object.keys(a.iocs).length > 0).length}/${articleCache.length}`);
   } catch (error) {
     console.error('Initial fetch failed:', error);
   }
