@@ -31,7 +31,7 @@
         }
 
         .left-panel {
-            margin-top: 20px;
+            margin-top: 70px;
             display: flex;
             flex-direction: column;
             gap: 15px;
@@ -180,6 +180,7 @@
         .low-threat { background: #4caf50; }
 
         .right-panel {
+            margin-top: 100px;
             display: flex;
             flex-direction: column;
             gap: 15px;
@@ -193,7 +194,8 @@
             padding: 15px;
             backdrop-filter: blur(20px);
             height: fit-content;
-            max-height: 350px;
+            width: 350px;
+            max-height: 300px;
             overflow-y: auto;
             transition: all 0.3s ease;
         }
@@ -358,7 +360,8 @@
         }
 
         .gauge-label {
-            font-size: 8px;
+            font-size: 10px;
+            letter-spacing: 1px;
             color: #4fc3f7;
             margin-top: 3px;
             text-transform: uppercase;
@@ -422,7 +425,35 @@
             box-shadow: 0 0 20px rgba(79, 195, 247, 0.2);
             transform: translateY(-2px);
         }
+header {
+    margin-top: -18px;
+  padding: 8px;
+  text-align: center;
+  position: relative;
+  overflow: hidden;
+  border-bottom: 3px solid #0080ff;
+}
 
+.title {
+  font-size: 2rem;
+  font-weight: 900;
+  text-transform: uppercase;
+  letter-spacing: 3px;
+  background: linear-gradient(45deg, #0080ff, #00d4ff, #4da6ff);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  margin-bottom: 0.5rem;
+  text-shadow: 0 0 30px rgba(0, 128, 255, 0.3);
+}
+
+.subtitle {
+  font-size: 1.2rem;
+  opacity: 0.8;
+  text-transform: uppercase;
+  letter-spacing: 2px;
+  color: #b3d9ff;
+}
         .panel-title {
             font-size: 12px;
             color: #4fc3f7;
@@ -705,28 +736,7 @@
         }
 
         /* Attacker base */
-        .attacker-base {
-            position: inherit;
-            width: 30px;
-            height: 30px;
-            background: rgba(244, 67, 54, 0.2);
-            border: 2px solid #f44336;
-            border-radius: 50%;
-            bottom: 50px;
-            left: 50%;
-            transform: translateX(-50%);
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            color: #ff5252;
-            font-size: 16px;
-            text-transform: uppercase;
-            letter-spacing: 1px;
-            z-index: 900;
-            animation: basePulse 2s infinite;
-            cursor: pointer;
-        }
-
+       
         @keyframes basePulse {
             0%, 100% { 
                 box-shadow: 0 0 10px rgba(244, 67, 54, 0.5);
@@ -963,7 +973,49 @@
             color: #f44336;
             margin-left: 10px;
         }
+      /* Enhanced country hover effects */
+        .country {
+            fill: rgba(0,0,0,0);
+            stroke: #4fc3f7;
+            stroke-width: 0.3;
+            stroke-opacity: 0.2;
+            transition: all 0.3s ease;
+        }
         
+        .country:hover {
+            fill: rgba(79, 195, 247, 0.15);
+            stroke: #4fc3f7;
+            stroke-width: 1.5;
+            stroke-opacity: 0.8;
+            filter: drop-shadow(0 0 8px rgba(79, 195, 247, 0.8));
+        }
+        
+        .country-highlight {
+            fill: rgba(79, 195, 247, 0.3);
+            stroke: #4fc3f7;
+            stroke-width: 1.5;
+            stroke-opacity: 0.8;
+            filter: drop-shadow(0 0 10px rgba(79, 195, 247, 0.8));
+        }
+        
+        .country-name-label {
+            font-size: 10px;
+            fill: #ffffff;
+            text-anchor: middle;
+            font-weight: bold;
+            opacity: 0;
+            transition: opacity 0.3s ease;
+            pointer-events: none;
+        }
+        
+        .country-attack-count {
+            font-size: 8px;
+            fill: #f44336;
+            text-anchor: middle;
+            opacity: 0;
+            transition: opacity 0.3s ease;
+            pointer-events: none;
+        }
         .attack-progress {
             height: 4px;
             background: rgba(79, 195, 247, 0.2);
@@ -978,10 +1030,189 @@
             border-radius: 2px;
             transition: width 0.5s ease;
         }
+        .sidebar {
+  position: fixed;
+  top: 0;
+  left: 0;
+  height: 100vh;
+  width: 250px;
+  background: linear-gradient(180deg, #0a0a1a 0%, #1a1a2e 100%);
+  border-right: 1px solid rgba(0, 128, 255, 0.2);
+  z-index: 100;
+  transition: all 0.3s ease;
+  transform: translateX(-100%);
+}
+
+.sidebar.open {
+  transform: translateX(0);
+}
+
+.sidebar-header {
+  padding: 1.5rem;
+  border-bottom: 1px solid rgba(0, 128, 255, 0.2);
+  text-align: center;
+}
+
+.sidebar-logo {
+  font-size: 1.5rem;
+  font-weight: bold;
+  background: linear-gradient(45deg, #0080ff, #00d4ff);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+.sidebar-menu {
+  padding: 1rem 0;
+}
+
+.menu-item {
+  display: flex;
+  align-items: center;
+  padding: 1rem 1.5rem;
+  color: #b3d9ff;
+  text-decoration: none;
+  transition: all 0.3s ease;
+  border-left: 3px solid transparent;
+}
+
+.menu-item:hover {
+  background: rgba(0, 128, 255, 0.1);
+  color: #ffffff;
+  border-left: 3px solid #0080ff;
+}
+
+.menu-item.active {
+  background: rgba(0, 128, 255, 0.2);
+  color: #ffffff;
+  border-left: 3px solid #0080ff;
+}
+
+.menu-item i {
+  margin-right: 1rem;
+  width: 20px;
+  text-align: center;
+}
+
+/* Menu Toggle Styles */
+.menu-toggle {
+  position: fixed;
+  top: 20px;
+  left: 20px;
+  width: 40px;
+  height: 40px;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  cursor: pointer;
+  z-index: 1000;
+  background: rgba(0, 128, 255, 0.2);
+  border-radius: 50%;
+  border: none;
+  transition: all 0.3s ease;
+}
+
+.menu-toggle span {
+  display: block;
+  width: 20px;
+  height: 2px;
+  background: #0080ff;
+  margin: 2px 0;
+  transition: all 0.3s ease;
+}
+
+/* When sidebar is open, hide the toggle */
+.sidebar.open ~ .menu-toggle {
+  opacity: 0;
+  visibility: hidden;
+  transform: translateX(-50px);
+}
+
+/* When sidebar is closed, show the toggle */
+.sidebar:not(.open) ~ .menu-toggle {
+  opacity: 1;
+  visibility: visible;
+  transform: translateX(0);
+}
+/* Time filter controls */
+        .time-filters {
+            display: flex;
+            gap: 8px;
+            margin-bottom: 15px;
+            flex-wrap: wrap;
+        }
+
+        .time-filter {
+            padding: 6px 12px;
+            background: rgba(0, 0, 0, 0.3);
+            border: 1px solid rgba(79, 195, 247, 0.3);
+            border-radius: 20px;
+            font-size: 10px;
+            color: #4fc3f7;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .time-filter:hover {
+            background: rgba(79, 195, 247, 0.2);
+            border-color: #4fc3f7;
+        }
+
+        .time-filter.active {
+            background: rgba(79, 195, 247, 0.4);
+            border-color: #4fc3f7;
+            color: white;
+            font-weight: bold;
+        }
+
+        /* Pulsing animation for critical values */
+        @keyframes pulseValue {
+            0%, 100% { transform: scale(1); }
+            50% { transform: scale(1.05); }
+        }
+
+        .pulsing {
+            animation: pulseValue 2s infinite;
+        }
+
+        /* Add to existing circle styles */
+        .circle-value {
+            transition: all 0.5s ease;
+        }
     </style>
 </head>
 <body>
-    
+    <button class="menu-toggle" id="menuToggle">
+  <span></span>
+  <span></span>
+  <span></span>
+</button>
+<!-- Sidebar Menu -->
+<div class="sidebar" id="sidebar">
+  <div class="sidebar-header">
+    <div class="sidebar-logo">ThreatScape Command Center</div>
+  </div>
+  
+  <div class="sidebar-menu">
+    <a href="index.html" class="menu-item" id="threatIntelLink">
+      <i class="fas fa-shield-alt"></i>
+      <span>Threat Intel</span>
+    </a>
+    <a href="dashboard.html" class="menu-item" id="dashboardLink">
+      <i class="fas fa-chart-line"></i>
+      <span>Executive Dashboard</span>
+    </a>
+    <a href="reports.html" class="menu-item" id="reportsLink">
+      <i class="fas fa-file-alt"></i>
+      <span>Reports</span>
+    </a>
+  </div>
+</div>
+ <header>
+    <h1 class="title">ThreatScape Command Center</h1>
+    <p class="subtitle">Live Threat Intelligence | IOC Driven | Enterprise Actionable</p>
+  </header>
     <div class="main-grid">
         <div class="left-panel">
             <div class="circle">
@@ -994,7 +1225,7 @@
             </div>
             <div class="circle alerts">
                 <div class="circle-value" id="alertsValue">0</div>
-                <div class="circle-label">Actionable Threat Feeds</div>
+                <div class="circle-label">Actionable Threats</div>
             </div>
         </div>
 
@@ -1017,15 +1248,15 @@
         </div>
 
         <div class="right-panel">
-            <div class="threat-intel-feed">
+               <div class="bottom-panel">
                 <div class="panel-title">
-                    <i class="fas fa-globe-americas"></i>
-                    Global Threat Intelligence
+                    <i class="fas fa-globe"></i>
+                    Top Targeted Countries
                 </div>
-                <div id="threatIntelList" class="threat-intel-list">
+                <div id="topCountries" class="country-stats">
                     <div class="loading">
                         <div class="spinner"></div>
-                        Loading threat intelligence...
+                        Loading country data...
                     </div>
                 </div>
             </div>
@@ -1036,8 +1267,8 @@
                         <div class="gauge-fill"></div>
                     </div>
                     <div class="gauge-center">
-                        <div class="gauge-value" id="eventsPerSecond">0 Cyber Flux</div>
-                        <div class="gauge-label">Events/Sec</div>
+                        <div class="gauge-value" id="eventsPerSecond">0</div>
+                        <div class="gauge-label">Cyber Flux</div>
                     </div>
                 </div>
             </div>
@@ -1082,19 +1313,20 @@
                     </div>
                 </div>
             </div>
-            
-            <div class="bottom-panel">
+
+            <div class="threat-intel-feed">
                 <div class="panel-title">
-                    <i class="fas fa-globe"></i>
-                    Top Targeted Countries
+                    <i class="fas fa-globe-americas"></i>
+                    Global Threat Intelligence
                 </div>
-                <div id="topCountries" class="country-stats">
+                <div id="threatIntelList" class="threat-intel-list">
                     <div class="loading">
                         <div class="spinner"></div>
-                        Loading country data...
+                        Loading threat intelligence...
                     </div>
                 </div>
             </div>
+         
             
             <div class="bottom-panel">
                 <div class="panel-title">
@@ -1128,18 +1360,131 @@
     <script src="https://d3js.org/topojson.v3.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/socket.io-client@4.7.2/dist/socket.io.min.js"></script>
     <script>
+        
     // ===== MAP INITIALIZATION =====
     const mapContainer = document.getElementById('worldMap');
     const width = mapContainer.clientWidth;
     const height = mapContainer.clientHeight;
+
+// Radar Value Fluctuation System
+let radarFluctuationIntervals = {};
+
+function animateRadarValue(elementId, finalValue) {
+    const element = document.getElementById(elementId);
+    if (!element) return;
+
+    // Clear existing interval
+    if (radarFluctuationIntervals[elementId]) {
+        clearInterval(radarFluctuationIntervals[elementId]);
+    }
+
+    const formatValue = (num) => {
+        if (num >= 1000000) return (num / 1000000).toFixed(1) + 'M';
+        if (num >= 1000) return (num / 1000).toFixed(1) + 'K';
+        return num.toFixed(1);
+    };
+
+    const finalFormatted = formatValue(finalValue);
+    const [wholePart, decimalPart] = finalFormatted.split('.');
+    const unit = finalFormatted.includes('M') ? 'M' : finalFormatted.includes('K') ? 'K' : '';
+
+    // Initial value
+    element.textContent = finalFormatted;
+
+    // Different fluctuation patterns for K and M values
+    let counter = 0;
+    radarFluctuationIntervals[elementId] = setInterval(() => {
+        let decimalValues;
+        let speed;
+        
+        if (unit === 'M') {
+            // For Millions - bigger and slower fluctuations
+            decimalValues = [0, 2, 4, 2, 1, 1]; // More dramatic fluctuation
+            speed = 3000; // Slower pace (800ms per step)
+        } else if (unit === 'K') {
+            // For Thousands - smaller and faster fluctuations
+            decimalValues = [0, 1, 1, 2, 1, 0]; // More subtle fluctuation
+            speed = 2000; // Faster pace (400ms per step)
+        } else {
+            // For regular numbers
+            decimalValues = [0, 1, 0];
+            speed = 1500;
+        }
+
+        const currentDecimal = decimalValues[counter % decimalValues.length];
+        element.textContent = `${wholePart}.${currentDecimal}${unit}`;
+        counter++;
+    }, unit === 'M' ? 1800 : 1400); // Different speeds for M and K
+}
+    // Improved Sidebar Toggle Functionality
+function toggleSidebar() {
+  const sidebar = document.getElementById('sidebar');
+  const menuToggle = document.getElementById('menuToggle');
+  
+  sidebar.classList.toggle('open');
+  
+  // Hide menu toggle when sidebar is open
+  if (sidebar.classList.contains('open')) {
+    menuToggle.style.opacity = '0';
+    menuToggle.style.visibility = 'hidden';
+    menuToggle.style.pointerEvents = 'none';
     
+    // Add click listener to close sidebar when clicking outside
+    setTimeout(() => {
+      document.addEventListener('click', closeSidebarOnClickOutside);
+    }, 10);
+  } else {
+    menuToggle.style.opacity = '1';
+    menuToggle.style.visibility = 'visible';
+    menuToggle.style.pointerEvents = 'auto';
+    
+    // Remove the click listener
+    document.removeEventListener('click', closeSidebarOnClickOutside);
+  }
+}
+
+// Close sidebar when clicking outside
+function closeSidebarOnClickOutside(e) {
+  const sidebar = document.getElementById('sidebar');
+  const menuToggle = document.getElementById('menuToggle');
+  
+  if (!sidebar.contains(e.target) && e.target !== menuToggle) {
+    toggleSidebar();
+  }
+}
+
+// Initialize event listeners
+document.getElementById('menuToggle').addEventListener('click', function(e) {
+  toggleSidebar();
+});
+
+// Menu item click handlers
+document.getElementById('threatIntelLink').addEventListener('click', function(e) {
+    setActiveMenuItem('threatIntelLink');
+});
+
+document.getElementById('dashboardLink').addEventListener('click', function(e) {
+    setActiveMenuItem('dashboardLink');
+});
+
+document.getElementById('reportsLink').addEventListener('click', function(e) {
+    setActiveMenuItem('reportsLink');
+});
+
+function setActiveMenuItem(activeId) {
+    document.querySelectorAll('.menu-item').forEach(item => {
+        item.classList.remove('active');
+    });
+    document.getElementById(activeId).classList.add('active');
+}
+
     // Create SVG for the map
     const svg = d3.select(mapContainer)
         .append("svg")
         .attr("width", width)
         .attr("height", height);
     
-    // Projection and path
+   // Projection and path
     const projection = d3.geoMercator()
         .scale(width / 6)
         .translate([width / 2, height / 1.5]);
@@ -1151,24 +1496,80 @@
         const countries = topojson.feature(world, world.objects.countries).features;
         
         // Draw countries with subtle outlines
-        svg.selectAll(".country")
+        const countryPaths = svg.selectAll(".country")
             .data(countries)
             .enter()
             .append("path")
             .attr("class", "country")
             .attr("d", path)
-            .attr("fill", "rgba(0,0,0,0)")
-            .attr("stroke", "#4fc3f7")
-            .attr("stroke-width", 0.3)
-            .attr("stroke-opacity", 0.2);
+            .style("stroke-width", "1.5px") 
+            .on("mouseover", function(event, d) {
+                // Highlight country on hover
+                d3.select(this).classed("country-highlight", true);
+                
+                // Show country name and attack count if available
+                const countryName = d.properties.name;
+                const countryData = globalThreatLocations[countryName];
+                
+                if (countryData) {
+                    // Remove any existing labels
+                    svg.selectAll(".country-label").remove();
+                    
+                    // Get centroid of the country path
+                    const centroid = path.centroid(d);
+                    
+                    // Add country name label
+                    svg.append("text")
+                        .attr("class", "country-name-label country-label")
+                        .attr("x", centroid[0])
+                        .attr("y", centroid[1] - 10)
+                        .text(countryName)
+                        .transition()
+                        .duration(200)
+                        .attr("opacity", 1);
+                    
+                    // Add attack count label
+                    svg.append("text")
+                        .attr("class", "country-attack-count country-label")
+                        .attr("x", centroid[0])
+                        .attr("y", centroid[1] + 5)
+                        .text(`${countryData.attacks} attacks`)
+                        .transition()
+                        .duration(200)
+                        .attr("opacity", 1);
+                }
+            })
+            .on("mouseout", function() {
+                // Restore original country style
+                d3.select(this).classed("country-highlight", false);
+                
+                // Remove labels
+                svg.selectAll(".country-label")
+                    .transition()
+                    .duration(200)
+                    .attr("opacity", 0)
+                    .remove();
+            })
+            .on("click", function(event, d) {
+                const countryName = d.properties.name;
+                const countryData = globalThreatLocations[countryName];
+                
+                if (countryData && countryData.targets) {
+                    // Show all attack connections from this country
+                    countryData.targets.forEach(target => {
+                        createCountryAttackConnection(countryName, target, countryData.attacks);
+                    });
+                }
+            });
+            
+        // Add a transparent overlay to catch mouse events for small countries
+        countryPaths
+            .clone(true)
+            .attr("class", "country-overlay")
+            .attr("fill", "rgba(0,0,0,0.01)") // Nearly transparent but catches mouse events
+            .attr("stroke", "none")
+            .lower(); // Send to back
     });
-
-    // Create attacker base
-    const attackerBase = document.createElement('div');
-    attackerBase.className = 'attacker-base';
-    attackerBase.textContent = '💀';
-    attackerBase.title = "Primary Attacker Location";
-    mapContainer.appendChild(attackerBase);
 
     // ===== GLOBAL THREAT DATA =====
     const globalThreatLocations = {
@@ -1346,7 +1747,7 @@
         setTimeout(() => {
             line.remove();
             packet.remove();
-        }, 3000);
+        }, 2000);
     }
 
     // New function to update top countries list
@@ -1478,26 +1879,6 @@
             });
         });
         
-        // Add tooltip for attacker base
-        attackerBase.addEventListener('mouseenter', () => {
-            const tooltip = document.getElementById('threatTooltip');
-            tooltip.innerHTML = `
-                <div class="tooltip-title">ATTACKER BASE</div>
-                <div class="tooltip-content">
-                    Primary threat origin location<br>
-                    Monitoring global attack patterns<br>
-                    <span style="color: #f44336;">High activity detected</span>
-                </div>
-            `;
-            tooltip.style.left = `${width/2 - 100}px`;
-            tooltip.style.top = `${height - 80}px`;
-            tooltip.style.opacity = '1';
-        });
-        
-        attackerBase.addEventListener('mouseleave', () => {
-            const tooltip = document.getElementById('threatTooltip');
-            tooltip.style.opacity = '0';
-        });
     }
 
     // ===== DASHBOARD FUNCTIONALITY =====
@@ -1624,28 +2005,31 @@
         });
     }
     
-    function updateDashboardStats() {
-        const criticalCount = activeThreats.filter(t => t.severity === 'critical').length;
-        const highCount = activeThreats.filter(t => t.severity === 'high').length;
-        const lowCount = activeThreats.filter(t => t.severity === 'low').length;
-        
-        const totalEventsRaw = activeThreats.length * 1250000;
-        const criticalEventsRaw = criticalCount * 2500 + highCount * 500;
-        const totalAlertsRaw = criticalCount + highCount + lowCount;
-        
-        eventsPerSecond = Math.max(1, Math.floor(activeThreats.length / 10));
-        
-        document.getElementById('eventsValue').textContent = formatNumber(totalEventsRaw);
-        document.getElementById('criticalValue').textContent = formatNumber(criticalEventsRaw);
-        document.getElementById('alertsValue').textContent = formatNumber(totalAlertsRaw);
-        document.getElementById('eventsPerSecond').textContent = `${eventsPerSecond} EPS`;
-        
-        // Update critical threats list
-        updateThreatList('criticalThreats', activeThreats.filter(t => t.severity === 'critical').slice(0, 5));
-        
-        // Update high priority threats list
-        updateThreatList('highPriority', activeThreats.filter(t => t.severity === 'high').slice(0, 5));
-    }
+  function updateDashboardStats() {
+    const criticalCount = activeThreats.filter(t => t.severity === 'critical').length;
+    const highCount = activeThreats.filter(t => t.severity === 'high').length;
+    const lowCount = activeThreats.filter(t => t.severity === 'low').length;
+    
+    const totalEventsRaw = activeThreats.length * 1250000;
+    const criticalEventsRaw = criticalCount * 2500 + highCount * 500;
+    const totalAlertsRaw = criticalCount + highCount + lowCount;
+    
+    eventsPerSecond = Math.max(1, Math.floor(activeThreats.length / 10));
+    
+    // Animate radar values with decimal fluctuation
+    animateRadarValue('eventsValue', totalEventsRaw);
+    animateRadarValue('criticalValue', criticalEventsRaw);
+    
+    // For alerts (whole numbers only), use standard formatting
+    document.getElementById('alertsValue').textContent = formatNumber(totalAlertsRaw);
+    
+    
+    // Update critical threats list
+    updateThreatList('criticalThreats', activeThreats.filter(t => t.severity === 'critical').slice(0, 5));
+    
+    // Update high priority threats list
+    updateThreatList('highPriority', activeThreats.filter(t => t.severity === 'high').slice(0, 5));
+}
     
     function formatTime(timestamp) {
         if (!timestamp) return 'Just now';
@@ -1676,7 +2060,7 @@
         }
         return 'Global';
     }
-    
+
     // ===== INITIALIZATION =====
     function initDashboard() {
         // Initialize the top countries section
@@ -1702,7 +2086,7 @@
                 const intensity = globalThreatLocations[sourceCountry].attacks;
                 createCountryAttackConnection(sourceCountry, targetCountry, intensity);
             }
-        }, 1000);
+        }, 300);
         
         // Load initial data
         fetch('/api/threat-intel')
@@ -1746,7 +2130,7 @@
         // Simulate real-time updates
         setInterval(() => {
             eventsPerSecond = Math.max(1, Math.floor(eventsPerSecond * (0.9 + Math.random() * 0.2)));
-            document.getElementById('eventsPerSecond').textContent = `${eventsPerSecond} EPS`;
+            document.getElementById('eventsPerSecond').textContent = `${eventsPerSecond} TPS`;
             
             if (Math.random() > 0.7) {
                 const randomIndex = Math.floor(Math.random() * activeThreats.length);
@@ -1775,7 +2159,10 @@
             }
         }, 3000);
     }
-    
+    window.addEventListener('beforeunload', () => {
+    Object.values(radarFluctuationIntervals).forEach(clearInterval);
+});
+
     // Start the dashboard when DOM is loaded
     document.addEventListener('DOMContentLoaded', initDashboard);
 </script>
