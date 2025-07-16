@@ -1,0 +1,767 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Cybersecurity Reports Dashboard</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        :root {
+            --critical: #ff6b6b;
+            --high: #ffa502;
+            --medium: #feca57;
+            --low: #54a0ff;
+            --bg-dark: #83c1ff;
+            --bg-light: #f5f5f5;
+        }
+body {
+  font-family: 'Inter', 'Segoe UI', sans-serif;
+  background: linear-gradient(135deg, #0a0a1a 0%, #1a1a2e 50%, #0f1525 100%);
+  color: #ffffff;
+  overflow-x: hidden;
+  position: relative;
+}
+
+/* Animated Code Background */
+.code-background {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  z-index: -1;
+  opacity: 0.5;
+  overflow: hidden;
+  font-family: 'Courier New', monospace;
+  font-size: 12px;
+  line-height: 1.4;
+  color: #00bbff;
+  pointer-events: none;
+}
+
+.code-line {
+  position: absolute;
+  white-space: nowrap;
+  animation: scrollCode 10s linear infinite;
+}
+
+.code-line:nth-child(odd) {
+  animation-direction: reverse;
+  animation-duration: 25s;
+}
+
+.code-line:nth-child(1) { top: 5%; animation-delay: 0s; }
+.code-line:nth-child(2) { top: 15%; animation-delay: -3s; }
+.code-line:nth-child(3) { top: 25%; animation-delay: -6s; }
+.code-line:nth-child(4) { top: 35%; animation-delay: -9s; }
+.code-line:nth-child(5) { top: 45%; animation-delay: -12s; }
+.code-line:nth-child(6) { top: 55%; animation-delay: -15s; }
+.code-line:nth-child(7) { top: 65%; animation-delay: -18s; }
+.code-line:nth-child(8) { top: 75%; animation-delay: -21s; }
+.code-line:nth-child(9) { top: 85%; animation-delay: -24s; }
+.code-line:nth-child(10) { top: 95%; animation-delay: -27s; }
+
+@keyframes scrollCode {
+  0% { transform: translateX(-100%); }
+  100% { transform: translateX(100vw); }
+}
+
+/* Subtle blue gradient overlay */
+.bg-animation {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: radial-gradient(circle at 20% 20%, rgba(0, 122, 255, 0.05) 0%, transparent 50%),
+              radial-gradient(circle at 80% 80%, rgba(0, 150, 255, 0.05) 0%, transparent 50%);
+  z-index: -1;
+}
+
+header {
+  background: linear-gradient(135deg, #00000076 0%, #0a1025 100%);
+  padding: 2rem 1rem;
+  text-align: center;
+  position: relative;
+  overflow: hidden;
+  border-bottom: 3px solid #0080ff;
+}
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        
+        header {
+            
+            background-color: var(--bg-dark);
+            color: white;
+            padding: 20px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        
+        .card {
+            background-color: #0080ff, #00d4ff;
+            border-radius: 8px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.684);
+            padding: 20px;
+            margin-bottom: 20px;
+        }
+        
+        .card h2 {
+            color: var(--bg-dark);
+            border-bottom: 1px solid #eeeeeee3;
+            padding-bottom: 10px;
+            margin-top: 0;
+        }
+        
+        .grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(400px, 1fr));
+            gap: 20px;
+        }
+        
+        .chart-container {
+            position: relative;
+            height: 300px;
+            margin-bottom: 15px;
+        }
+        
+        .report-section {
+            margin-bottom: 30px;
+        }
+        
+        .report-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 15px;
+        }
+        
+        .date-selector {
+            display: flex;
+            gap: 10px;
+        }
+        
+        button {
+            background-color: var(--bg-dark);
+            color: white;
+            border: none;
+            padding: 8px 15px;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+        
+        button:hover {
+            opacity: 0.9;
+        }
+        
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 15px;
+        }
+        
+        th, td {
+            padding: 12px 15px;
+            text-align: left;
+            border-bottom: 1px solid #ddd;
+        }
+        
+        th {
+            background-color: var(--bg-dark);
+            color: white;
+        }
+        
+        .badge {
+            display: inline-block;
+            padding: 3px 8px;
+            border-radius: 4px;
+            font-size: 0.8em;
+            font-weight: bold;
+            color: white;
+        }
+        
+        .badge-critical {
+            background-color: var(--critical);
+        }
+        
+        .badge-high {
+            background-color: var(--high);
+        }
+        
+        .badge-medium {
+            background-color: var(--medium);
+        }
+        
+        .badge-low {
+            background-color: var(--low);
+        }
+        
+        .loading {
+            text-align: center;
+            padding: 20px;
+            color: #7f8c8d;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="code-background">
+    <div class="code-line">if (threat.severity === 'critical') { executeCountermeasures(); deployPatches(); }</div>
+    <div class="code-line">scan.ports([80, 443, 22, 3389]); analyze.traffic(packets); detect.anomalies();</div>
+    <div class="code-line">firewall.block(malicious_ip); intrusion.detected = true; alert.security_team();</div>
+    <div class="code-line">encrypt.data(aes256); validate.certificates(); monitor.network_activity();</div>
+    <div class="code-line">vulnerability.scan(); patch.management(); compliance.audit();</div>
+    <div class="code-line">malware.signature_update(); quarantine.infected_files(); backup.critical_data();</div>
+    <div class="code-line">penetration.test(); social.engineering.awareness(); phishing.detection();</div>
+    <div class="code-line">incident.response(); forensic.analysis(); threat.intelligence.feed();</div>
+    <div class="code-line">zero_day.exploit.detected(); emergency.protocols.activated(); isolation.procedures();</div>
+    <div class="code-line">authentication.multifactor(); access.control(); privilege.escalation.blocked();</div>
+  </div>
+  
+  <div class="bg-animation"></div>
+        <header>
+            <h1>Cybersecurity Reports Dashboard</h1>
+            <div id="last-updated">Loading...</div>
+        </header>
+
+        <div class="report-section">
+            <div class="report-header">
+                <h2>Daily Threat Report</h2>
+                <div class="date-selector">
+                    <input type="date" id="daily-date" value="${new Date().toISOString().split('T')[0]}">
+                    <button id="load-daily">Load Report</button>
+                </div>
+            </div>
+            <div class="grid">
+                <div class="card">
+                    <h2>Threat Severity Distribution</h2>
+                    <div class="chart-container">
+                        <canvas id="dailySeverityChart"></canvas>
+                    </div>
+                </div>
+                <div class="card">
+                    <h2>Top Threat Sources</h2>
+                    <div class="chart-container">
+                        <canvas id="dailySourcesChart"></canvas>
+                    </div>
+                </div>
+            </div>
+            <div class="card">
+                <h2>Top Threats</h2>
+                <div id="daily-threats">
+                    <div class="loading">Select a date to load report</div>
+                </div>
+            </div>
+        </div>
+
+        <div class="report-section">
+            <div class="report-header">
+                <h2>Weekly Threat Report</h2>
+                <div class="date-selector">
+                    <input type="week" id="weekly-date">
+                    <button id="load-weekly">Load Report</button>
+                </div>
+            </div>
+            <div class="grid">
+                <div class="card">
+                    <h2>Threat Trends</h2>
+                    <div class="chart-container">
+                        <canvas id="weeklyTrendChart"></canvas>
+                    </div>
+                </div>
+                <div class="card">
+                    <h2>Attack Type Distribution</h2>
+                    <div class="chart-container">
+                        <canvas id="weeklyAttackChart"></canvas>
+                    </div>
+                </div>
+            </div>
+            <div class="card">
+                <h2>Notable IOCs</h2>
+                <div id="weekly-iocs">
+                    <div class="loading">Select a week to load report</div>
+                </div>
+            </div>
+        </div>
+
+        <div class="report-section">
+            <div class="report-header">
+                <h2>Threat Actor Analysis</h2>
+                <button id="load-actors">Load Report</button>
+            </div>
+            <div class="card">
+                <div id="threat-actors">
+                    <div class="loading">Click "Load Report" to view threat actors</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Global variables for charts
+        let charts = {
+            dailySeverity: null,
+            dailySources: null,
+            weeklyTrend: null,
+            weeklyAttack: null
+        };
+
+        // Initialize the dashboard
+        document.addEventListener('DOMContentLoaded', function() {
+            // Set default week input to current week
+            const now = new Date();
+            const year = now.getFullYear();
+            const week = getWeekNumber(now);
+            document.getElementById('weekly-date').value = `${year}-W${week.toString().padStart(2, '0')}`;
+            
+            // Set up event listeners
+            document.getElementById('load-daily').addEventListener('click', loadDailyReport);
+            document.getElementById('load-weekly').addEventListener('click', loadWeeklyReport);
+            document.getElementById('load-actors').addEventListener('click', loadThreatActors);
+            
+            // Initialize charts
+            initializeCharts();
+            
+            // Load today's report by default
+            loadDailyReport();
+        });
+
+        // Initialize empty charts
+        function initializeCharts() {
+            // Daily Severity Chart
+            charts.dailySeverity = new Chart(
+                document.getElementById('dailySeverityChart').getContext('2d'),
+                {
+                    type: 'doughnut',
+                    data: {
+                        labels: ['Critical', 'High', 'Medium', 'Low'],
+                        datasets: [{
+                            data: [0, 0, 0, 0],
+                            backgroundColor: [
+                                'var(--critical)',
+                                'var(--high)',
+                                'var(--medium)',
+                                'var(--low)'
+                            ],
+                            borderWidth: 0
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        plugins: {
+                            legend: {
+                                position: 'bottom'
+                            }
+                        }
+                    }
+                }
+            );
+
+            // Daily Sources Chart
+            charts.dailySources = new Chart(
+                document.getElementById('dailySourcesChart').getContext('2d'),
+                {
+                    type: 'bar',
+                    data: {
+                        labels: [],
+                        datasets: [{
+                            label: 'Threats',
+                            data: [],
+                            backgroundColor: 'var(--bg-dark)'
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        scales: {
+                            y: {
+                                beginAtZero: true
+                            }
+                        }
+                    }
+                }
+            );
+
+            // Weekly Trend Chart
+            charts.weeklyTrend = new Chart(
+                document.getElementById('weeklyTrendChart').getContext('2d'),
+                {
+                    type: 'line',
+                    data: {
+                        labels: [],
+                        datasets: [
+                            {
+                                label: 'Critical',
+                                data: [],
+                                borderColor: 'var(--critical)',
+                                backgroundColor: 'rgba(255, 107, 107, 0.1)',
+                                tension: 0.3,
+                                fill: true
+                            },
+                            {
+                                label: 'High',
+                                data: [],
+                                borderColor: 'var(--high)',
+                                backgroundColor: 'rgba(255, 165, 2, 0.1)',
+                                tension: 0.3,
+                                fill: true
+                            }
+                        ]
+                    },
+                    options: {
+                        responsive: true,
+                        plugins: {
+                            legend: {
+                                position: 'top'
+                            }
+                        },
+                        scales: {
+                            y: {
+                                beginAtZero: true
+                            }
+                        }
+                    }
+                }
+            );
+
+            // Weekly Attack Chart
+            charts.weeklyAttack = new Chart(
+                document.getElementById('weeklyAttackChart').getContext('2d'),
+                {
+                    type: 'pie',
+                    data: {
+                        labels: ['Phishing', 'Malware', 'DDoS', 'Insider', 'Other'],
+                        datasets: [{
+                            data: [0, 0, 0, 0, 0],
+                            backgroundColor: [
+                                'var(--critical)',
+                                'var(--high)',
+                                'var(--medium)',
+                                'var(--low)',
+                                '#95a5a6'
+                            ]
+                        }]
+                    },
+                    options: {
+                        responsive: true
+                    }
+                }
+            );
+        }
+
+        // Load daily report
+        async function loadDailyReport() {
+            const dateInput = document.getElementById('daily-date');
+            const date = dateInput.value;
+            
+            try {
+                showLoading('daily-threats');
+                
+                const response = await fetch(`/api/reports/daily?date=${date}`);
+                if (!response.ok) throw new Error('Failed to load report');
+                
+                const report = await response.json();
+                
+                if (!report.success) {
+                    throw new Error(report.message || 'Failed to load report');
+                }
+                
+                updateDailyReportUI(report.report);
+            } catch (error) {
+                console.error('Error loading daily report:', error);
+                document.getElementById('daily-threats').innerHTML = 
+                    `<div class="loading" style="color: var(--critical)">Error: ${error.message}</div>`;
+            }
+        }
+
+        // Update UI with daily report data
+        function updateDailyReportUI(report) {
+            // Update last updated time
+            document.getElementById('last-updated').textContent = 
+                `Last updated: ${new Date().toLocaleString()}`;
+            
+            // Update severity chart
+            charts.dailySeverity.data.datasets[0].data = [
+                report.stats.severityCounts.critical,
+                report.stats.severityCounts.high,
+                report.stats.severityCounts.medium,
+                report.stats.severityCounts.low
+            ];
+            charts.dailySeverity.update();
+            
+            // Update sources chart
+            const sources = Object.entries(report.stats.sourceCounts)
+                .sort((a, b) => b[1] - a[1])
+                .slice(0, 5);
+            
+            charts.dailySources.data.labels = sources.map(s => s[0]);
+            charts.dailySources.data.datasets[0].data = sources.map(s => s[1]);
+            charts.dailySources.update();
+            
+            // Update top threats list
+            const threatsList = document.getElementById('daily-threats');
+            threatsList.innerHTML = '';
+            
+            if (report.topThreats && report.topThreats.length > 0) {
+                report.topThreats.forEach(threat => {
+                    const threatElement = document.createElement('div');
+                    threatElement.className = 'threat-item';
+                    threatElement.style.marginBottom = '10px';
+                    threatElement.style.padding = '10px';
+                    threatElement.style.borderLeft = `4px solid ${getSeverityColor(threat.severity)}`;
+                    threatElement.style.backgroundColor = `${getSeverityColor(threat.severity)}10`;
+                    
+                    threatElement.innerHTML = `
+                        <h3 style="margin-top: 0;">${threat.title || 'Unknown Threat'}</h3>
+                        <p>${threat.description || 'No description available'}</p>
+                        <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 10px;">
+                            <span class="badge badge-${threat.severity || 'high'}">${threat.severity || 'High'}</span>
+                            <small>Source: ${threat.source || 'Unknown'} • ${formatDate(threat.publishedAt)}</small>
+                        </div>
+                    `;
+                    
+                    threatsList.appendChild(threatElement);
+                });
+            } else {
+                threatsList.innerHTML = '<div class="loading">No threats found for this date</div>';
+            }
+        }
+
+        // Load weekly report
+        async function loadWeeklyReport() {
+            const weekInput = document.getElementById('weekly-date');
+            const weekValue = weekInput.value;
+            
+            try {
+                showLoading('weekly-iocs');
+                
+                // Extract year and week from input (format: YYYY-Www)
+                const [year, week] = weekValue.split('-W').map(Number);
+                const startDate = getDateOfWeek(week, year);
+                const endDate = new Date(startDate);
+                endDate.setDate(startDate.getDate() + 6);
+                
+                const response = await fetch(`/api/reports/weekly?start=${startDate.toISOString().split('T')[0]}&end=${endDate.toISOString().split('T')[0]}`);
+                if (!response.ok) throw new Error('Failed to load report');
+                
+                const report = await response.json();
+                
+                if (!report.success) {
+                    throw new Error(report.message || 'Failed to load report');
+                }
+                
+                updateWeeklyReportUI(report.report);
+            } catch (error) {
+                console.error('Error loading weekly report:', error);
+                document.getElementById('weekly-iocs').innerHTML = 
+                    `<div class="loading" style="color: var(--critical)">Error: ${error.message}</div>`;
+            }
+        }
+
+        // Update UI with weekly report data
+        function updateWeeklyReportUI(report) {
+            // Update trend chart
+            charts.weeklyTrend.data.labels = report.dailyBreakdown.map(day => day.date);
+            charts.weeklyTrend.data.datasets[0].data = report.dailyBreakdown.map(day => day.critical);
+            charts.weeklyTrend.data.datasets[1].data = report.dailyBreakdown.map(day => day.high);
+            charts.weeklyTrend.update();
+            
+            // Update attack type chart
+            const attackTypes = [
+                report.stats.tagCounts.phishing || 0,
+                report.stats.tagCounts.malware || 0,
+                report.stats.tagCounts.ddos || 0,
+                report.stats.tagCounts.insider || 0,
+                report.stats.totalThreats - 
+                    (report.stats.tagCounts.phishing || 0) - 
+                    (report.stats.tagCounts.malware || 0) - 
+                    (report.stats.tagCounts.ddos || 0) - 
+                    (report.stats.tagCounts.insider || 0)
+            ];
+            
+            charts.weeklyAttack.data.datasets[0].data = attackTypes;
+            charts.weeklyAttack.update();
+            
+            // Update notable IOCs
+            const iocsList = document.getElementById('weekly-iocs');
+            iocsList.innerHTML = '';
+            
+            if (report.notableIOCs && (
+                report.notableIOCs.domains.length > 0 ||
+                report.notableIOCs.ipAddresses.length > 0 ||
+                report.notableIOCs.hashes.length > 0 ||
+                report.notableIOCs.cves.length > 0 ||
+                report.notableIOCs.malwareFamilies.length > 0
+            )) {
+                // Domains
+                if (report.notableIOCs.domains.length > 0) {
+                    iocsList.appendChild(createIOCSection('Domains', report.notableIOCs.domains));
+                }
+                
+                // IPs
+                if (report.notableIOCs.ipAddresses.length > 0) {
+                    iocsList.appendChild(createIOCSection('IP Addresses', report.notableIOCs.ipAddresses));
+                }
+                
+                // Hashes
+                if (report.notableIOCs.hashes.length > 0) {
+                    iocsList.appendChild(createIOCSection('File Hashes', report.notableIOCs.hashes));
+                }
+                
+                // CVEs
+                if (report.notableIOCs.cves.length > 0) {
+                    iocsList.appendChild(createIOCSection('Vulnerabilities', report.notableIOCs.cves));
+                }
+                
+                // Malware
+                if (report.notableIOCs.malwareFamilies.length > 0) {
+                    iocsList.appendChild(createIOCSection('Malware Families', report.notableIOCs.malwareFamilies));
+                }
+            } else {
+                iocsList.innerHTML = '<div class="loading">No notable IOCs found for this week</div>';
+            }
+        }
+
+        // Load threat actors report
+        async function loadThreatActors() {
+            try {
+                showLoading('threat-actors');
+                
+                const response = await fetch('/api/reports/threat-actors');
+                if (!response.ok) throw new Error('Failed to load report');
+                
+                const report = await response.json();
+                
+                if (!report.success) {
+                    throw new Error(report.message || 'Failed to load report');
+                }
+                
+                updateThreatActorsUI(report.threatActors);
+            } catch (error) {
+                console.error('Error loading threat actors report:', error);
+                document.getElementById('threat-actors').innerHTML = 
+                    `<div class="loading" style="color: var(--critical)">Error: ${error.message}</div>`;
+            }
+        }
+
+        // Update UI with threat actors data
+        function updateThreatActorsUI(actors) {
+            const actorsList = document.getElementById('threat-actors');
+            actorsList.innerHTML = '';
+            
+            if (actors && actors.length > 0) {
+                actors.forEach(actor => {
+                    const actorElement = document.createElement('div');
+                    actorElement.className = 'card';
+                    actorElement.style.marginBottom = '15px';
+                    
+                    actorElement.innerHTML = `
+                        <h3 style="margin-top: 0;">${actor.name}</h3>
+                        <p><strong>Activity:</strong> ${actor.count} incidents in the last 30 days</p>
+                        
+                        <div style="margin-top: 10px;">
+                            <h4 style="margin-bottom: 5px;">Associated Malware:</h4>
+                            ${actor.malwareFamilies.length > 0 ? 
+                                actor.malwareFamilies.map(f => `<span class="badge" style="background-color: var(--high); margin-right: 5px;">${f}</span>`).join('') : 
+                                'None identified'}
+                        </div>
+                        
+                        <div style="margin-top: 10px;">
+                            <h4 style="margin-bottom: 5px;">Common TTPs:</h4>
+                            ${actor.ttps.length > 0 ? 
+                                actor.ttps.map(ttp => `<span class="badge" style="background-color: var(--medium); margin-right: 5px; margin-bottom: 5px;">${ttp}</span>`).join('') : 
+                                'None identified'}
+                        </div>
+                        
+                        <div style="margin-top: 15px;">
+                            <h4 style="margin-bottom: 5px;">Recent IOCs:</h4>
+                            ${actor.iocs.networkIOCs.length > 0 ? 
+                                `<p><strong>Domains:</strong> ${actor.iocs.networkIOCs.join(', ')}</p>` : ''}
+                            ${actor.iocs.fileIOCs.length > 0 ? 
+                                `<p><strong>Hashes:</strong> ${actor.iocs.fileIOCs.join(', ')}</p>` : ''}
+                        </div>
+                    `;
+                    
+                    actorsList.appendChild(actorElement);
+                });
+            } else {
+                actorsList.innerHTML = '<div class="loading">No threat actor activity found</div>';
+            }
+        }
+
+        // Helper function to create an IOC section
+        function createIOCSection(title, items) {
+            const section = document.createElement('div');
+            section.style.marginBottom = '20px';
+            
+            section.innerHTML = `
+                <h3 style="margin-bottom: 5px;">${title}</h3>
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Indicator</th>
+                            <th>Count</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        ${items.map(item => `
+                            <tr>
+                                <td>${item.domain || item.ip || item.hash || item.cve || item.family || 'Unknown'}</td>
+                                <td>${item.count}</td>
+                            </tr>
+                        `).join('')}
+                    </tbody>
+                </table>
+            `;
+            
+            return section;
+        }
+
+        // Helper function to show loading state
+        function showLoading(elementId) {
+            document.getElementById(elementId).innerHTML = 
+                '<div class="loading">Loading report data...</div>';
+        }
+
+        // Helper function to get severity color
+        function getSeverityColor(severity) {
+            if (!severity) return 'var(--high)';
+            
+            severity = severity.toLowerCase();
+            if (severity.includes('critical')) return 'var(--critical)';
+            if (severity.includes('high')) return 'var(--high)';
+            if (severity.includes('medium')) return 'var(--medium)';
+            return 'var(--low)';
+        }
+
+        // Helper function to format date
+        function formatDate(dateString) {
+            if (!dateString) return '';
+            return new Date(dateString).toLocaleDateString();
+        }
+
+        // Helper function to get week number
+        function getWeekNumber(date) {
+            const d = new Date(date);
+            d.setHours(0, 0, 0, 0);
+            d.setDate(d.getDate() + 3 - (d.getDay() + 6) % 7);
+            const week1 = new Date(d.getFullYear(), 0, 4);
+            return 1 + Math.round(((d - week1) / 86400000 - 3 + (week1.getDay() + 6) % 7) / 7);
+        }
+
+        // Helper function to get date from week number
+        function getDateOfWeek(week, year) {
+            const date = new Date(year, 0, 1);
+            const dayOffset = date.getDay();
+            date.setDate(date.getDate() - dayOffset + (week - 1) * 7);
+            return date;
+        }
+    </script>
+</body>
+</html>
