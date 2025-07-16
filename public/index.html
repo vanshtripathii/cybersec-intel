@@ -614,7 +614,7 @@ header {
   right: 0;
   background: linear-gradient(90deg, #ff6b6b, #ff5252);
   color: white;
-  padding: 1rem;
+  padding: 1px;
   text-align: center;
   font-weight: bold;
   transform: translateY(-100%);
@@ -815,7 +815,7 @@ header {
   </div>
   
   <div class="sidebar-menu">
-    <a href="#" class="menu-item active" id="threatIntelLink">
+    <a href="index.html" class="menu-item" id="threatIntelLink">
       <i class="fas fa-shield-alt"></i>
       <span>Threat Intel</span>
     </a>
@@ -823,7 +823,7 @@ header {
       <i class="fas fa-chart-line"></i>
       <span>Executive Dashboard</span>
     </a>
-    <a href="#" class="menu-item" id="reportsLink">
+    <a href="reports.html" class="menu-item" id="reportsLink">
       <i class="fas fa-file-alt"></i>
       <span>Reports</span>
     </a>
@@ -931,7 +931,7 @@ header {
       
       <!-- IOC Section -->
       <div class="ioc-toggle" id="iocToggle">
-        <span>🕵️ Show Indicators of Compromise (IOCs)</span>
+        <span> Show Indicators of Compromise (IOCs)</span>
         <span class="ioc-arrow">▼</span>
       </div>
       <div class="ioc-container" id="iocContainer">
@@ -962,7 +962,6 @@ function toggleSidebar() {
   
   sidebar.classList.toggle('open');
   
-  // Hide menu toggle when sidebar is open
   if (sidebar.classList.contains('open')) {
     menuToggle.style.opacity = '0';
     menuToggle.style.visibility = 'hidden';
@@ -982,7 +981,6 @@ function toggleSidebar() {
   }
 }
 
-// Close sidebar when clicking outside
 function closeSidebarOnClickOutside(e) {
   const sidebar = document.getElementById('sidebar');
   const menuToggle = document.getElementById('menuToggle');
@@ -1000,567 +998,570 @@ document.getElementById('menuToggle').addEventListener('click', function(e) {
 
 // Menu item click handlers
 document.getElementById('threatIntelLink').addEventListener('click', function(e) {
-    e.preventDefault();
-    setActiveMenuItem('threatIntelLink');
+  setActiveMenuItem('threatIntelLink');
 });
 
 document.getElementById('dashboardLink').addEventListener('click', function(e) {
-    setActiveMenuItem('dashboardLink');
+  setActiveMenuItem('dashboardLink');
 });
 
 document.getElementById('reportsLink').addEventListener('click', function(e) {
-    e.preventDefault();
-    setActiveMenuItem('reportsLink');
-    alert('Reports page would load here');
+  setActiveMenuItem('reportsLink');
 });
 
 function setActiveMenuItem(activeId) {
-    document.querySelectorAll('.menu-item').forEach(item => {
-        item.classList.remove('active');
-    });
-    document.getElementById(activeId).classList.add('active');
+  document.querySelectorAll('.menu-item').forEach(item => {
+    item.classList.remove('active');
+  });
+  document.getElementById(activeId).classList.add('active');
 }
 
 // Initialize dashboard
 document.addEventListener('DOMContentLoaded', function() {
-    setupEventListeners();
-    loadThreats();
-    initDateInputs();
+  setupEventListeners();
+  loadThreats();
+  initDateInputs();
 });
 
 function setupEventListeners() {
-    // Time range buttons
-    document.querySelectorAll('.time-btn').forEach(btn => {
-        btn.addEventListener('click', function() {
-            document.querySelectorAll('.time-btn').forEach(b => b.classList.remove('active'));
-            this.classList.add('active');
-            
-            if (this.dataset.range === 'custom') {
-                document.getElementById('datePickerContainer').style.display = 'flex';
-            } else {
-                document.getElementById('datePickerContainer').style.display = 'none';
-                applyFilters();
-            }
-        });
+  // Time range buttons
+  document.querySelectorAll('.time-btn').forEach(btn => {
+    btn.addEventListener('click', function() {
+      document.querySelectorAll('.time-btn').forEach(b => b.classList.remove('active'));
+      this.classList.add('active');
+      
+      if (this.dataset.range === 'custom') {
+        document.getElementById('datePickerContainer').style.display = 'flex';
+      } else {
+        document.getElementById('datePickerContainer').style.display = 'none';
+        applyFilters();
+      }
     });
+  });
 
-    // Filter buttons
-    document.querySelectorAll('.filter-btn').forEach(btn => {
-        btn.addEventListener('click', function() {
-            document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
-            this.classList.add('active');
-            applyFilters();
-        });
+  // Filter buttons
+  document.querySelectorAll('.filter-btn').forEach(btn => {
+    btn.addEventListener('click', function() {
+      document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
+      this.classList.add('active');
+      applyFilters();
     });
+  });
 
-    // Search button
-    document.getElementById('searchBtn').addEventListener('click', searchThreats);
-    
-    // Refresh button
-    document.getElementById('refreshBtn').addEventListener('click', loadThreats);
-    
-    // IOC toggle
-    document.getElementById('iocToggle').addEventListener('click', toggleIOCs);
+  // Search button
+  document.getElementById('searchBtn').addEventListener('click', searchThreats);
+  
+  // Refresh button
+  document.getElementById('refreshBtn').addEventListener('click', loadThreats);
+  
+  // IOC toggle
+  document.getElementById('iocToggle').addEventListener('click', toggleIOCs);
 }
 
 function toggleIOCs() {
-    const container = document.getElementById('iocContainer');
-    const arrow = document.querySelector('.ioc-arrow');
-    
-    container.classList.toggle('expanded');
-    arrow.textContent = container.classList.contains('expanded') ? '▲' : '▼';
+  const container = document.getElementById('iocContainer');
+  const arrow = document.querySelector('.ioc-arrow');
+  
+  container.classList.toggle('expanded');
+  arrow.textContent = container.classList.contains('expanded') ? '▲' : '▼';
 }
 
 // Load threats from server
 async function loadThreats() {
-    try {
-        showLoading(true);
-        updateTimeInfo('Loading threat intelligence...');
+  try {
+    showLoading(true);
+    updateTimeInfo('Loading threat intelligence...');
 
-        const response = await fetch(`${API_BASE_URL}/api/threats`);
-        if (!response.ok) throw new Error(`HTTP ${response.status}`);
-        
-        const data = await response.json();
-        currentArticles = data.threats || [];
-        filteredArticles = [...currentArticles];
-        
-        displayArticles(filteredArticles);
-        updateStats();
-        updateTimeInfo(`Loaded ${currentArticles.length} threats`);
-        
-        // Show critical alert if needed
-        if (currentArticles.some(article => article.severity === 'critical')) {
-            showCriticalAlert();
-        }
-    } catch (error) {
-        console.error('Failed to load threats:', error);
-        showErrorState('Failed to load threat intelligence. Please try again later.');
-    } finally {
-        showLoading(false);
+    const response = await fetch(`${API_BASE_URL}/api/threats?full_month=true`);
+    if (!response.ok) throw new Error(`HTTP ${response.status}`);
+    
+    const data = await response.json();
+    currentArticles = data.threats || [];
+    filteredArticles = [...currentArticles];
+    
+    displayArticles(filteredArticles);
+    updateStats();
+    updateTimeInfo(`Loaded ${currentArticles.length} threats`);
+    
+    // Show critical alert if needed
+    if (currentArticles.some(article => article.severity === 'critical')) {
+      showCriticalAlert();
     }
+  } catch (error) {
+    console.error('Failed to load threats:', error);
+    showErrorState('Failed to load threat intelligence. Please try again later.');
+  } finally {
+    showLoading(false);
+  }
 }
 
 // Search threats by date range
 async function searchThreats() {
-    const startDate = document.getElementById('startDate').value;
-    const endDate = document.getElementById('endDate').value;
+  const startDate = document.getElementById('startDate').value;
+  const endDate = document.getElementById('endDate').value;
+  
+  if (!startDate || !endDate) {
+    showToast('Please select both start and end dates');
+    return;
+  }
+
+  try {
+    showLoading(true);
+    updateTimeInfo(`Searching threats from ${startDate} to ${endDate}...`);
+
+    // Include full_month parameter for month-long searches
+    const fullMonth = document.querySelector('.time-btn.active')?.dataset.range === '1m';
+    const url = `${API_BASE_URL}/api/threats?start=${startDate}&end=${endDate}${fullMonth ? '&full_month=true' : ''}`;
     
-    if (!startDate || !endDate) {
-        showToast('Please select both start and end dates');
-        return;
-    }
-
-    try {
-        showLoading(true);
-        updateTimeInfo(`Searching threats from ${startDate} to ${endDate}...`);
-
-        const response = await fetch(`${API_BASE_URL}/api/threats?start=${startDate}&end=${endDate}`);
-        if (!response.ok) throw new Error(`HTTP ${response.status}`);
-        
-        const data = await response.json();
-        currentArticles = data.threats || [];
-        filteredArticles = [...currentArticles];
-        
-        displayArticles(filteredArticles);
-        updateStats();
-        updateTimeInfo(`Found ${currentArticles.length} threats in date range`);
-    } catch (error) {
-        console.error('Search failed:', error);
-        showToast('Failed to search threats. Please try again.');
-    } finally {
-        showLoading(false);
-    }
+    const response = await fetch(url);
+    if (!response.ok) throw new Error(`HTTP ${response.status}`);
+    
+    const data = await response.json();
+    currentArticles = data.threats || [];
+    filteredArticles = [...currentArticles];
+    
+    displayArticles(filteredArticles);
+    updateStats();
+    updateTimeInfo(`Found ${currentArticles.length} threats in date range`);
+  } catch (error) {
+    console.error('Search failed:', error);
+    showToast('Failed to search threats. Please try again.');
+  } finally {
+    showLoading(false);
+  }
 }
 
 function applyFilters() {
-    const activeFilter = document.querySelector('.filter-btn.active')?.dataset.filter || 'all';
-    const activeTimeRange = document.querySelector('.time-btn.active')?.dataset.range || '24h';
+  const activeFilter = document.querySelector('.filter-btn.active')?.dataset.filter || 'all';
+  const activeTimeRange = document.querySelector('.time-btn.active')?.dataset.range || '24h';
+  
+  let filtered = [...currentArticles];
+  
+  // First apply time range filter if not custom
+  if (activeTimeRange !== 'custom') {
+    const now = new Date();
+    let cutoffDate;
     
-    let filtered = [...currentArticles];
-    
-    // First apply time range filter if not custom
-    if (activeTimeRange !== 'custom') {
-        const now = new Date();
-        let cutoffDate;
-        
-        switch(activeTimeRange) {
-            case '24h':
-                cutoffDate = new Date(now - 24 * 60 * 60 * 1000);
-                break;
-            case '7d':
-                cutoffDate = new Date(now - 7 * 24 * 60 * 60 * 1000);
-                break;
-            case '1m':
-                cutoffDate = new Date(now - 30 * 24 * 60 * 60 * 1000);
-                break;
-        }
-        
-        filtered = filtered.filter(article => 
-            new Date(article.publishedAt) >= cutoffDate
-        );
+    switch(activeTimeRange) {
+      case '24h':
+        cutoffDate = new Date(now - 24 * 60 * 60 * 1000);
+        break;
+      case '7d':
+        cutoffDate = new Date(now - 7 * 24 * 60 * 60 * 1000);
+        break;
+      case '1m':
+        // Get first day of previous month at 00:00:00
+        cutoffDate = new Date(now.getFullYear(), now.getMonth() - 1, 1);
+        break;
     }
     
-    // Then apply severity filter
-    if (activeFilter !== 'all') {
-        filtered = filtered.filter(article => 
-            article.severity === activeFilter
-        );
-    }
-    
-    filteredArticles = filtered;
-    displayArticles(filteredArticles);
-    updateStats();
-    
-    // Update time info text
-    if (activeTimeRange === 'custom') {
-        updateTimeInfo(`Showing ${activeFilter === 'all' ? 'all' : activeFilter} threats in custom range (${filtered.length} articles)`);
-    } else {
-        const ranges = {
-            '24h': 'last 24 hours',
-            '7d': 'last 7 days', 
-            '1m': 'last month'
-        };
-        updateTimeInfo(`Showing ${activeFilter === 'all' ? 'all' : activeFilter} threats from the ${ranges[activeTimeRange]} (${filtered.length} articles)`);
-    }
+    filtered = filtered.filter(article => 
+      new Date(article.publishedAt) >= cutoffDate
+    );
+  }
+  
+  // Then apply severity filter
+  if (activeFilter !== 'all') {
+    filtered = filtered.filter(article => 
+      article.severity === activeFilter
+    );
+  }
+  
+  filteredArticles = filtered;
+  displayArticles(filteredArticles);
+  updateStats();
+  
+  // Update time info text
+  if (activeTimeRange === 'custom') {
+    updateTimeInfo(`Showing ${activeFilter === 'all' ? 'all' : activeFilter} threats in custom range (${filtered.length} articles)`);
+  } else {
+    const ranges = {
+      '24h': 'last 24 hours',
+      '7d': 'last 7 days', 
+      '1m': 'last month'
+    };
+    updateTimeInfo(`Showing ${activeFilter === 'all' ? 'all' : activeFilter} threats from the ${ranges[activeTimeRange]} (${filtered.length} articles)`);
+  }
 }
 
 function displayArticles(articles) {
-    const container = document.getElementById('newsContainer');
-    
-    if (articles.length === 0) {
-        container.innerHTML = `
-            <div class="no-articles">
-                <h3>No threats found</h3>
-                <p>Try adjusting your filters or date range</p>
-            </div>
-        `;
-        return;
-    }
+  const container = document.getElementById('newsContainer');
+  
+  if (articles.length === 0) {
+    container.innerHTML = `
+      <div class="no-articles">
+        <h3>No threats found</h3>
+        <p>Try adjusting your filters or date range</p>
+      </div>
+    `;
+    return;
+  }
 
-    container.innerHTML = articles.map(article => `
-        <div class="news-card ${article.severity}" data-id="${article.id}">
-            <div class="severity-badge ${article.severity}">${article.severity.toUpperCase()}</div>
-            <div class="news-card-content">
-                <h3>${article.title}</h3>
-                <div class="preview-content">
-                    ${article.description ? article.description.substring(0, 200) + (article.description.length > 200 ? '...' : '') : 'No preview available'}
-                </div>
-                <button class="summarize-btn" data-id="${article.id}">
-                    🔍 AI Summarize
-                </button>
-            </div>
-            <div class="news-card-footer">
-                <div class="source-info">
-                    <span>${formatDateTime(new Date(article.publishedAt))}</span>
-                    <span>Source: ${article.source}</span>
-                </div>
-                ${article.url ? `
-                <a href="${article.url}" target="_blank" class="source-link">
-                    🔗 View Source
-                </a>` : ''}
-            </div>
+  container.innerHTML = articles.map(article => `
+    <div class="news-card ${article.severity}" data-id="${article.id}">
+      <div class="severity-badge ${article.severity}">${article.severity.toUpperCase()}</div>
+      <div class="news-card-content">
+        <h3>${article.title}</h3>
+        <div class="preview-content">
+          ${article.description ? article.description.substring(0, 200) + (article.description.length > 200 ? '...' : '') : 'No preview available'}
         </div>
-    `).join('');
+        <button class="summarize-btn" data-id="${article.id}">
+          🔍 AI Summarize
+        </button>
+      </div>
+      <div class="news-card-footer">
+        <div class="source-info">
+          <span>${formatDateTime(new Date(article.publishedAt))}</span>
+          <span>Source: ${article.source}</span>
+        </div>
+        ${article.url ? `
+        <a href="${article.url}" target="_blank" class="source-link">
+          🔗 View Source
+        </a>` : ''}
+      </div>
+    </div>
+  `).join('');
 
-    // Add click handlers for summarize buttons
-    document.querySelectorAll('.summarize-btn').forEach(btn => {
-        btn.addEventListener('click', (e) => {
-            e.stopPropagation();
-            const articleId = btn.dataset.id;
-            const article = articles.find(a => a.id === articleId);
-            if (article) {
-                showSummaryModal(article);
-            }
-        });
+  // Add click handlers for summarize buttons
+  document.querySelectorAll('.summarize-btn').forEach(btn => {
+    btn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      const articleId = btn.dataset.id;
+      const article = articles.find(a => a.id === articleId);
+      if (article) {
+        showSummaryModal(article);
+      }
     });
+  });
 
-    // Add click handlers for entire cards
-    document.querySelectorAll('.news-card').forEach(card => {
-        card.addEventListener('click', (e) => {
-            if (!e.target.closest('.summarize-btn') && !e.target.closest('a')) {
-                const articleId = card.dataset.id;
-                const article = articles.find(a => a.id === articleId);
-                if (article && article.url) {
-                    window.open(article.url, '_blank');
-                }
-            }
-        });
+  // Add click handlers for entire cards
+  document.querySelectorAll('.news-card').forEach(card => {
+    card.addEventListener('click', (e) => {
+      if (!e.target.closest('.summarize-btn') && !e.target.closest('a')) {
+        const articleId = card.dataset.id;
+        const article = articles.find(a => a.id === articleId);
+        if (article && article.url) {
+          window.open(article.url, '_blank');
+        }
+      }
     });
+  });
 }
 
 function showSummaryModal(article) {
-    currentModalArticle = article;
-    const modal = document.getElementById('summaryModal');
-    const modalTitle = document.getElementById('modalTitle');
-    const modalSeverity = document.getElementById('modalSeverity');
-    const modalDate = document.getElementById('modalDate');
-    const modalSource = document.getElementById('modalSource');
-    const modalLink = document.getElementById('modalLink');
-    const modalSummary = document.getElementById('modalSummary');
+  currentModalArticle = article;
+  const modal = document.getElementById('summaryModal');
+  const modalTitle = document.getElementById('modalTitle');
+  const modalSeverity = document.getElementById('modalSeverity');
+  const modalDate = document.getElementById('modalDate');
+  const modalSource = document.getElementById('modalSource');
+  const modalLink = document.getElementById('modalLink');
+  const modalSummary = document.getElementById('modalSummary');
 
-    modalTitle.textContent = article.title;
-    modalSeverity.textContent = article.severity.toUpperCase();
-    modalSeverity.className = 'modal-severity ' + article.severity;
-    modalDate.textContent = formatDateTime(new Date(article.publishedAt));
-    modalSource.textContent = 'Source: ' + article.source;
-    modalLink.href = article.url || '#';
-    
-    // Reset IOC section
-    document.getElementById('iocContainer').classList.remove('expanded');
-    document.querySelector('.ioc-arrow').textContent = '▼';
-    document.getElementById('iocContent').innerHTML = `
-        <div class="loading-summary">
-            <div class="spinner"></div>
-            Loading Indicators of Compromise...
-        </div>
-    `;
-    
-    modalSummary.innerHTML = `
-        <div class="loading-summary">
-            <div class="spinner"></div>
-            Generating AI summary...
-        </div>
-    `;
-    
-    modal.style.display = 'block';
-    document.body.style.overflow = 'hidden';
-    
-    // Close modal handlers
-    document.querySelector('.close-modal').onclick = () => closeModal();
-    window.onclick = (e) => {
-        if (e.target === modal) {
-            closeModal();
-        }
-    };
-    
-    // Fetch the summary and IOCs
-    fetchArticleSummary(article);
-    fetchIOCsForArticle(article.id);
+  modalTitle.textContent = article.title;
+  modalSeverity.textContent = article.severity.toUpperCase();
+  modalSeverity.className = 'modal-severity ' + article.severity;
+  modalDate.textContent = formatDateTime(new Date(article.publishedAt));
+  modalSource.textContent = 'Source: ' + article.source;
+  modalLink.href = article.url || '#';
+  
+  // Reset IOC section
+  document.getElementById('iocContainer').classList.remove('expanded');
+  document.querySelector('.ioc-arrow').textContent = '▼';
+  document.getElementById('iocContent').innerHTML = `
+    <div class="loading-summary">
+      <div class="spinner"></div>
+      Loading Indicators of Compromise...
+    </div>
+  `;
+  
+  modalSummary.innerHTML = `
+    <div class="loading-summary">
+      <div class="spinner"></div>
+      Generating AI summary...
+    </div>
+  `;
+  
+  modal.style.display = 'block';
+  document.body.style.overflow = 'hidden';
+  
+  // Close modal handlers
+  document.querySelector('.close-modal').onclick = () => closeModal();
+  window.onclick = (e) => {
+    if (e.target === modal) {
+      closeModal();
+    }
+  };
+  
+  // Fetch the summary and IOCs
+  fetchArticleSummary(article);
+  fetchIOCsForArticle(article.id);
 }
 
 function closeModal() {
-    document.getElementById('summaryModal').style.display = 'none';
-    document.body.style.overflow = 'auto';
-    currentModalArticle = null;
+  document.getElementById('summaryModal').style.display = 'none';
+  document.body.style.overflow = 'auto';
+  currentModalArticle = null;
 }
 
 async function fetchArticleSummary(article) {
-    try {
-        const modalSummary = document.getElementById('modalSummary');
-        const contentToSummarize = article.description || article.title;
-        
-        const response = await fetch(`${API_BASE_URL}/api/summarize`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ 
-                content: contentToSummarize,
-                articleId: article.id 
-            })
-        });
-        
-        if (!response.ok) throw new Error(`HTTP ${response.status}`);
-        
-        const data = await response.json();
-        
-        // Process summary
-        if (data.summary) {
-            // Split main points and technical details
-            const summaryParts = data.summary.split('\nTechnical Details:');
-            let summaryHTML = summaryParts[0].split('\n')
-                .filter(line => line.trim())
-                .map(line => `<p>${line.replace('•', '')}</p>`)
-                .join('');
-            
-            // Add technical details if present
-            if (summaryParts[1]) {
-                summaryHTML += `
-                    <div class="technical-details">
-                        <strong>Technical Details:</strong>
-                        <ul>
-                            ${summaryParts[1].split('\n')
-                                .filter(detail => detail.trim())
-                                .map(detail => `<li>${detail.replace('•', '').trim()}</li>`)
-                                .join('')}
-                        </ul>
-                    </div>
-                `;
-            }
-            
-            modalSummary.innerHTML = summaryHTML;
-        } else {
-            modalSummary.innerHTML = '<p>Could not generate summary</p>';
-        }
-    } catch (error) {
-        console.error('Summary generation failed:', error);
-        document.getElementById('modalSummary').innerHTML = `
-            <p>Error generating summary. Please try again later.</p>
-            <button class="refresh-btn" onclick="fetchArticleSummary(currentModalArticle)">Retry</button>
+  try {
+    const modalSummary = document.getElementById('modalSummary');
+    const contentToSummarize = article.description || article.title;
+    
+    const response = await fetch(`${API_BASE_URL}/api/summarize`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ 
+        content: contentToSummarize,
+        articleId: article.id 
+      })
+    });
+    
+    if (!response.ok) throw new Error(`HTTP ${response.status}`);
+    
+    const data = await response.json();
+    
+    // Process summary
+    if (data.summary) {
+      // Split main points and technical details
+      const summaryParts = data.summary.split('\nTechnical Details:');
+      let summaryHTML = summaryParts[0].split('\n')
+        .filter(line => line.trim())
+        .map(line => `<p>${line.replace('•', '')}</p>`)
+        .join('');
+      
+      // Add technical details if present
+      if (summaryParts[1]) {
+        summaryHTML += `
+          <div class="technical-details">
+            <strong>Technical Details:</strong>
+            <ul>
+              ${summaryParts[1].split('\n')
+                .filter(detail => detail.trim())
+                .map(detail => `<li>${detail.replace('•', '').trim()}</li>`)
+                .join('')}
+            </ul>
+          </div>
         `;
+      }
+      
+      modalSummary.innerHTML = summaryHTML;
+    } else {
+      modalSummary.innerHTML = '<p>Could not generate summary</p>';
     }
+  } catch (error) {
+    console.error('Summary generation failed:', error);
+    document.getElementById('modalSummary').innerHTML = `
+      <p>Error generating summary. Please try again later.</p>
+      <button class="refresh-btn" onclick="fetchArticleSummary(currentModalArticle)">Retry</button>
+    `;
+  }
 }
 
 async function fetchIOCsForArticle(articleId) {
-    try {
-        const response = await fetch(`${API_BASE_URL}/api/iocs/${articleId}`);
-        if (!response.ok) throw new Error(`HTTP ${response.status}`);
-        
-        const data = await response.json();
-        displayIOCs(data.iocs);
-    } catch (error) {
-        console.error('Failed to fetch IOCs:', error);
-        document.getElementById('iocContent').innerHTML = `
-            <p>Error loading IOCs. Please try again later.</p>
-        `;
-    }
+  try {
+    const response = await fetch(`${API_BASE_URL}/api/iocs/${articleId}`);
+    if (!response.ok) throw new Error(`HTTP ${response.status}`);
+    
+    const data = await response.json();
+    displayIOCs(data.iocs);
+  } catch (error) {
+    console.error('Failed to fetch IOCs:', error);
+    document.getElementById('iocContent').innerHTML = `
+      <p>Error loading IOCs. Please try again later.</p>
+    `;
+  }
 }
 
 function displayIOCs(iocs) {
-    const iocContent = document.getElementById('iocContent');
-    let iocHTML = '';
-    let hasIOCs = false;
-    
-    // Helper function to create IOC sections
-    const createIocSection = (title, items) => {
-        if (items && items.length > 0) {
-            hasIOCs = true;
-            return `
-                <div class="ioc-section">
-                    <h4>${title}</h4>
-                    <div class="ioc-list">
-                        ${items.map(item => `<div class="ioc-item">${item}</div>`).join('')}
-                    </div>
-                </div>
-            `;
-        }
-        return '';
-    };
-    
-    // Network IOCs
-    if (iocs.networkIOCs) {
-        const network = iocs.networkIOCs;
-        if (network.ipAddresses?.length) {
-            iocHTML += createIocSection('IP Addresses', network.ipAddresses);
-        }
-        if (network.domains?.length) {
-            iocHTML += createIocSection('Domains', network.domains);
-        }
-        if (network.urls?.length) {
-            iocHTML += `
-                <div class="ioc-section">
-                    <h4>URLs</h4>
-                    <div class="ioc-list">
-                        ${network.urls.map(url => `
-                            <div class="ioc-item">
-                                <a href="${url.startsWith('http') ? url : 'https://' + url}" 
-                                   target="_blank" 
-                                   rel="noopener noreferrer">
-                                    ${url}
-                                </a>
-                            </div>
-                        `).join('')}
-                    </div>
-                </div>
-            `;
-            hasIOCs = true;
-        }
-        if (network.emails?.length) {
-            iocHTML += createIocSection('Emails', network.emails);
-        }
+  const iocContent = document.getElementById('iocContent');
+  let iocHTML = '';
+  let hasIOCs = false;
+  
+  // Helper function to create IOC sections
+  const createIocSection = (title, items) => {
+    if (items && items.length > 0) {
+      hasIOCs = true;
+      return `
+        <div class="ioc-section">
+          <h4>${title}</h4>
+          <div class="ioc-list">
+            ${items.map(item => `<div class="ioc-item">${item}</div>`).join('')}
+          </div>
+        </div>
+      `;
     }
-    
-    // File IOCs
-    if (iocs.fileIOCs) {
-        const file = iocs.fileIOCs;
-        if (file.hashes?.length) {
-            iocHTML += createIocSection('File Hashes', file.hashes);
-        }
-        if (file.filenames?.length) {
-            iocHTML += createIocSection('Malicious Filenames', file.filenames);
-        }
+    return '';
+  };
+  
+  // Network IOCs
+  if (iocs.networkIOCs) {
+    const network = iocs.networkIOCs;
+    if (network.ipAddresses?.length) {
+      iocHTML += createIocSection('IP Addresses', network.ipAddresses);
     }
-    
-    // Threat Intelligence
-    if (iocs.threatIntelligence) {
-        const threat = iocs.threatIntelligence;
-        if (threat.cves?.length) {
-            iocHTML += createIocSection('CVEs', threat.cves);
-        }
-        if (threat.malwareFamilies?.length) {
-            iocHTML += createIocSection('Malware Families', threat.malwareFamilies);
-        }
-        if (threat.aptGroups?.length) {
-            iocHTML += createIocSection('APT Groups', threat.aptGroups);
-        }
-        if (threat.ttps?.length) {
-            iocHTML += createIocSection('TTPs (Tactics, Techniques & Procedures)', threat.ttps);
-        }
+    if (network.domains?.length) {
+      iocHTML += createIocSection('Domains', network.domains);
     }
-    
-    // Host IOCs
-    if (iocs.hostIOCs) {
-        const host = iocs.hostIOCs;
-        if (host.registryKeys?.length) {
-            iocHTML += createIocSection('Registry Keys', host.registryKeys);
-        }
-        if (host.processes?.length) {
-            iocHTML += createIocSection('Suspicious Processes', host.processes);
-        }
+    if (network.urls?.length) {
+      iocHTML += `
+        <div class="ioc-section">
+          <h4>URLs</h4>
+          <div class="ioc-list">
+            ${network.urls.map(url => `
+              <div class="ioc-item">
+                <a href="${url.startsWith('http') ? url : 'https://' + url}" 
+                   target="_blank" 
+                   rel="noopener noreferrer">
+                  ${url}
+                </a>
+              </div>
+            `).join('')}
+          </div>
+        </div>
+      `;
+      hasIOCs = true;
     }
-    
-    // Behavioral IOCs
-    if (iocs.behavioralIOCs) {
-        const behavioral = iocs.behavioralIOCs;
-        if (behavioral.scriptExecution?.length) {
-            iocHTML += createIocSection('Script Execution Patterns', behavioral.scriptExecution);
-        }
+    if (network.emails?.length) {
+      iocHTML += createIocSection('Emails', network.emails);
     }
-    
-    iocContent.innerHTML = hasIOCs ? iocHTML : '<p>No IOCs found in this article</p>';
+  }
+  
+  // File IOCs
+  if (iocs.fileIOCs) {
+    const file = iocs.fileIOCs;
+    if (file.hashes?.length) {
+      iocHTML += createIocSection('File Hashes', file.hashes);
+    }
+    if (file.filenames?.length) {
+      iocHTML += createIocSection('Malicious Filenames', file.filenames);
+    }
+  }
+  
+  // Threat Intelligence
+  if (iocs.threatIntelligence) {
+    const threat = iocs.threatIntelligence;
+    if (threat.cves?.length) {
+      iocHTML += createIocSection('CVEs', threat.cves);
+    }
+    if (threat.malwareFamilies?.length) {
+      iocHTML += createIocSection('Malware Families', threat.malwareFamilies);
+    }
+    if (threat.aptGroups?.length) {
+      iocHTML += createIocSection('APT Groups', threat.aptGroups);
+    }
+    if (threat.ttps?.length) {
+      iocHTML += createIocSection('TTPs (Tactics, Techniques & Procedures)', threat.ttps);
+    }
+  }
+  
+  // Host IOCs
+  if (iocs.hostIOCs) {
+    const host = iocs.hostIOCs;
+    if (host.registryKeys?.length) {
+      iocHTML += createIocSection('Registry Keys', host.registryKeys);
+    }
+    if (host.processes?.length) {
+      iocHTML += createIocSection('Suspicious Processes', host.processes);
+    }
+  }
+  
+  // Behavioral IOCs
+  if (iocs.behavioralIOCs) {
+    const behavioral = iocs.behavioralIOCs;
+    if (behavioral.scriptExecution?.length) {
+      iocHTML += createIocSection('Script Execution Patterns', behavioral.scriptExecution);
+    }
+  }
+  
+  iocContent.innerHTML = hasIOCs ? iocHTML : '<p>No IOCs found in this article</p>';
 }
 
 function updateStats() {
-    const stats = filteredArticles.reduce((acc, article) => {
-        acc[article.severity] = (acc[article.severity] || 0) + 1;
-        return acc;
-    }, {critical: 0, high: 0, medium: 0, low: 0});
+  const stats = filteredArticles.reduce((acc, article) => {
+    acc[article.severity] = (acc[article.severity] || 0) + 1;
+    return acc;
+  }, {critical: 0, high: 0, medium: 0, low: 0});
 
-    document.getElementById('criticalCount').textContent = stats.critical;
-    document.getElementById('highCount').textContent = stats.high;
-    document.getElementById('mediumCount').textContent = stats.medium;
-    document.getElementById('lowCount').textContent = stats.low;
+  document.getElementById('criticalCount').textContent = stats.critical;
+  document.getElementById('highCount').textContent = stats.high;
+  document.getElementById('mediumCount').textContent = stats.medium;
+  document.getElementById('lowCount').textContent = stats.low;
 }
 
 function updateTimeInfo(message) {
-    document.getElementById('timeInfo').textContent = message;
+  document.getElementById('timeInfo').textContent = message;
 }
 
 function showLoading(show) {
-    const container = document.getElementById('newsContainer');
-    if (show) {
-        container.innerHTML = `
-            <div class="loading">
-                <div class="spinner large"></div>
-                Loading threat intelligence...
-            </div>
-        `;
-    }
+  const container = document.getElementById('newsContainer');
+  if (show) {
+    container.innerHTML = `
+      <div class="loading">
+        <div class="spinner large"></div>
+        Loading threat intelligence...
+      </div>
+    `;
+  }
 }
 
 function showErrorState(message) {
-    const container = document.getElementById('newsContainer');
-    container.innerHTML = `
-        <div class="error-state">
-            <h3>⚠️ Error</h3>
-            <p>${message}</p>
-            <button class="refresh-btn" onclick="loadThreats()">🔄 Retry</button>
-        </div>
-    `;
+  const container = document.getElementById('newsContainer');
+  container.innerHTML = `
+    <div class="error-state">
+      <h3>⚠️ Error</h3>
+      <p>${message}</p>
+      <button class="refresh-btn" onclick="loadThreats()">🔄 Retry</button>
+    </div>
+  `;
 }
 
 function showToast(message, duration = 3000) {
-    const toast = document.getElementById('toast');
-    toast.textContent = message;
-    toast.classList.add('show');
-    
-    setTimeout(() => {
-        toast.classList.remove('show');
-    }, duration);
+  const toast = document.getElementById('toast');
+  toast.textContent = message;
+  toast.classList.add('show');
+  
+  setTimeout(() => {
+    toast.classList.remove('show');
+  }, duration);
 }
 
 function showCriticalAlert() {
-    const banner = document.getElementById('alertBanner');
-    const criticalCount = currentArticles.filter(a => a.severity === 'critical').length;
-    banner.textContent = `🚨 CRITICAL ALERT: ${criticalCount} active critical threats detected`;
-    banner.classList.add('show');
-    
-    setTimeout(() => {
-        banner.classList.remove('show');
-    }, 10000);
+  const banner = document.getElementById('alertBanner');
+  const criticalCount = currentArticles.filter(a => a.severity === 'critical').length;
+  banner.textContent = `🚨 CRITICAL ALERT: ${criticalCount} active critical threats detected`;
+  banner.classList.add('show');
+  
+  setTimeout(() => {
+    banner.classList.remove('show');
+  }, 4000);
 }
 
 function formatDateTime(date) {
-    return date.toLocaleString('en-US', {
-        year: 'numeric',
-        month: 'short',
-        day: 'numeric',
-        hour: '2-digit',
-        minute: '2-digit'
-    });
+  return date.toLocaleString('en-US', {
+    year: 'numeric',
+    month: 'short',
+    day: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit'
+  });
 }
 
 function initDateInputs() {
-    const today = new Date();
-    const oneWeekAgo = new Date();
-    oneWeekAgo.setDate(today.getDate() - 7);
-    
-    document.getElementById('startDate').valueAsDate = oneWeekAgo;
-    document.getElementById('endDate').valueAsDate = today;
+  const today = new Date();
+  const oneWeekAgo = new Date();
+  oneWeekAgo.setDate(today.getDate() - 7);
+  
+  document.getElementById('startDate').valueAsDate = oneWeekAgo;
+  document.getElementById('endDate').valueAsDate = today;
 }
 
 // Make functions available globally
 window.loadThreats = loadThreats;
 window.searchThreats = searchThreats;
 window.fetchArticleSummary = fetchArticleSummary;
+window.toggleIOCs = toggleIOCs;
   </script>
 </body>
-  </html>
+</html>
