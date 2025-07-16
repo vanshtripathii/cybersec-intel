@@ -42,7 +42,7 @@ const NEWS_SOURCES = [
   },
   {
     name: "Dark Reading",
-    url: "https://www.darkreading.com/rss.xml",
+    url: "https://www.darkreading.com/rss_simple.asp",
     type: "rss"
   },
   {
@@ -52,7 +52,7 @@ const NEWS_SOURCES = [
   },
   {
     name: "Recorded Future",
-    url: "https://www.recordedfuture.com/news/rss.xml",
+    url: "https://www.recordedfuture.com/feed",
     type: "rss"
   }
 ];
@@ -630,6 +630,7 @@ function generateFallbackSummary(content) {
 }
 
 // API Endpoints
+// In your server code (app.get('/api/threats'))
 app.get('/api/threats', async (req, res) => {
   try {
     const { start, end } = req.query;
@@ -820,6 +821,402 @@ app.post('/api/summarize', async (req, res) => {
   }
 });
 
+// ==============================================
+// NEW REPORTS ENDPOINTS
+// ==============================================
+
+// Generate daily threat report
+app.get('/api/reports/daily', async (req, res) => {
+  try {
+    const allArticles = await fetchAllArticles();
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    
+    const todaysThreats = allArticles.filter(article => {
+      const articleDate = new Date(article.publishedAt);
+      return articleDate >= today;
+    });
+
+    if (todaysThreats.length === 0) {
+      return res.status(404).json({ 
+        success: false,
+        message: "No threats found for today"
+      });
+    }
+
+    // Generate report data
+    const report = {
+      date: today.toISOString().split('T')[0],
+      totalThreats: todaysThreats.length,
+      stats: generateStats(todaysThreats),
+      topThreats: todaysThreats
+        .sort((a, b) => {
+          const severityOrder = { critical: 4, high: 3, medium: 2, low: 1 };
+          return severityOrder[b.severity] - severityOrder[a.severity];
+        })
+        .slice(0, 10),
+      notableIOCs: aggregateTopIOCs(todaysThreats)
+    };
+
+    res.json({
+      success: true,
+      report
+    });
+  } catch (error) {
+    console.error('Error generating daily report:', error);
+    res.status(500).json({ 
+      success: false,
+      error: "Failed to generate daily report"
+    });
+  }
+});
+
+// Generate weekly threat report
+app.get('/api/reports/weekly', async (req, res) => {
+  try {
+    const allArticles = await fetchAllArticles();
+    const oneWeekAgo = new Date();
+    oneWeekAgo.setDate(oneWeekAgo.getDate() - 7);
+    oneWeekAgo.setHours(0, 0, 0, 0);
+    
+    const weeklyThreats = allArticles.filter(article => {
+      const articleDate = new Date(article.publishedAt);
+      return articleDate >= oneWeekAgo;
+    });
+
+    if (weeklyThreats.length === 0) {
+      return res.status(404).json({ 
+        success: false,
+        message: "No threats found for this week"
+      });
+    }
+
+    // Generate report data
+    const report = {
+      startDate: oneWeekAgo.toISOString().split('T')[0],
+      endDate: new Date().toISOString().split('T')[0],
+      totalThreats: weeklyThreats.length,
+      stats: generateStats(weeklyThreats),
+      dailyBreakdown: generateDailyBreakdown(weeklyThreats),
+      topThreats: weeklyThreats
+        .sort((a, b) => {
+          const severityOrder = { critical: 4, high: 3, medium: 2, low: 1 };
+          return severityOrder[b.severity] - severityOrder[a.severity];
+        })
+        .slice(0, 15),
+      notableIOCs: aggregateTopIOCs(weeklyThreats),
+      trendingTags: getTrendingTags(weeklyThreats)
+    };
+
+    res.json({
+      success: true,
+      report
+    });
+  } catch (error) {
+    console.error('Error generating weekly report:', error);
+    res.status(500).json({ 
+      success: false,
+      error: "Failed to generate weekly report"
+    });
+  }
+});
+
+// Generate custom report based on date range
+app.get('/api/reports/custom', async (req, res) => {
+  try {
+    const { start, end } = req.query;
+    
+    if (!start || !end) {
+      return res.status(400).json({ 
+        success: false,
+        error: "Both start and end dates are required"
+      });
+    }
+
+    const startDate = new Date(start);
+    const endDate = new Date(end);
+    
+    if (isNaN(startDate.getTime()) || isNaN(endDate.getTime())) {
+      return res.status(400).json({ 
+        success: false,
+        error: "Invalid date format. Use YYYY-MM-DD"
+      });
+    }
+
+    const allArticles = await fetchAllArticles();
+    
+    const filteredThreats = allArticles.filter(article => {
+      const articleDate = new Date(article.publishedAt);
+      return articleDate >= startDate && articleDate <= endDate;
+    });
+
+    if (filteredThreats.length === 0) {
+      return res.status(404).json({ 
+        success: false,
+        message: `No threats found between ${start} and ${end}`
+      });
+    }
+
+    // Generate report data
+    const report = {
+      startDate: start,
+      endDate: end,
+      totalThreats: filteredThreats.length,
+      stats: generateStats(filteredThreats),
+      dailyBreakdown: generateDailyBreakdown(filteredThreats),
+      topThreats: filteredThreats
+        .sort((a, b) => {
+          const severityOrder = { critical: 4, high: 3, medium: 2, low: 1 };
+          return severityOrder[b.severity] - severityOrder[a.severity];
+        })
+        .slice(0, 20),
+      notableIOCs: aggregateTopIOCs(filteredThreats),
+      trendingTags: getTrendingTags(filteredThreats),
+      sourceDistribution: getSourceDistribution(filteredThreats)
+    };
+
+    res.json({
+      success: true,
+      report
+    });
+  } catch (error) {
+    console.error('Error generating custom report:', error);
+    res.status(500).json({ 
+      success: false,
+      error: "Failed to generate custom report"
+    });
+  }
+});
+
+// Generate threat actor report
+app.get('/api/reports/threat-actors', async (req, res) => {
+  try {
+    const allArticles = await fetchAllArticles();
+    const oneMonthAgo = new Date();
+    oneMonthAgo.setMonth(oneMonthAgo.getMonth() - 1);
+    oneMonthAgo.setHours(0, 0, 0, 0);
+    
+    const recentThreats = allArticles.filter(article => {
+      const articleDate = new Date(article.publishedAt);
+      return articleDate >= oneMonthAgo;
+    });
+
+    // Extract threat actor information
+    const threatActors = {};
+    
+    recentThreats.forEach(article => {
+      if (article.iocs?.threatIntelligence?.aptGroups) {
+        article.iocs.threatIntelligence.aptGroups.forEach(group => {
+          if (!threatActors[group]) {
+            threatActors[group] = {
+              count: 0,
+              articles: [],
+              malwareFamilies: new Set(),
+              ttps: new Set(),
+              iocs: {
+                networkIOCs: new Set(),
+                fileIOCs: new Set(),
+                hostIOCs: new Set()
+              }
+            };
+          }
+          
+          threatActors[group].count++;
+          threatActors[group].articles.push({
+            title: article.title,
+            url: article.url,
+            publishedAt: article.publishedAt,
+            severity: article.severity
+          });
+          
+          // Add associated malware families
+          if (article.iocs.threatIntelligence.malwareFamilies) {
+            article.iocs.threatIntelligence.malwareFamilies.forEach(family => {
+              threatActors[group].malwareFamilies.add(family);
+            });
+          }
+          
+          // Add TTPs
+          if (article.iocs.threatIntelligence.ttps) {
+            article.iocs.threatIntelligence.ttps.forEach(ttp => {
+              threatActors[group].ttps.add(ttp);
+            });
+          }
+          
+          // Add notable IOCs
+          if (article.iocs.networkIOCs?.domains) {
+            article.iocs.networkIOCs.domains.forEach(domain => {
+              threatActors[group].iocs.networkIOCs.add(domain);
+            });
+          }
+          
+          if (article.iocs.fileIOCs?.hashes) {
+            article.iocs.fileIOCs.hashes.forEach(hash => {
+              threatActors[group].iocs.fileIOCs.add(hash);
+            });
+          }
+        });
+      }
+    });
+
+    // Convert sets to arrays for response
+    const formattedActors = Object.keys(threatActors).map(name => {
+      return {
+        name,
+        count: threatActors[name].count,
+        articles: threatActors[name].articles,
+        malwareFamilies: Array.from(threatActors[name].malwareFamilies),
+        ttps: Array.from(threatActors[name].ttps),
+        iocs: {
+          networkIOCs: Array.from(threatActors[name].iocs.networkIOCs).slice(0, 5),
+          fileIOCs: Array.from(threatActors[name].iocs.fileIOCs).slice(0, 5),
+          hostIOCs: Array.from(threatActors[name].iocs.hostIOCs).slice(0, 5)
+        }
+      };
+    });
+
+    res.json({
+      success: true,
+      threatActors: formattedActors,
+      lastUpdated: new Date().toISOString()
+    });
+  } catch (error) {
+    console.error('Error generating threat actor report:', error);
+    res.status(500).json({ 
+      success: false,
+      error: "Failed to generate threat actor report"
+    });
+  }
+});
+
+// Helper function to generate daily breakdown
+function generateDailyBreakdown(articles) {
+  const dailyCounts = {};
+  
+  articles.forEach(article => {
+    const date = new Date(article.publishedAt).toISOString().split('T')[0];
+    
+    if (!dailyCounts[date]) {
+      dailyCounts[date] = {
+        date,
+        total: 0,
+        critical: 0,
+        high: 0,
+        medium: 0,
+        low: 0
+      };
+    }
+    
+    dailyCounts[date].total++;
+    dailyCounts[date][article.severity]++;
+  });
+  
+  return Object.values(dailyCounts).sort((a, b) => new Date(a.date) - new Date(b.date));
+}
+
+// Helper function to aggregate top IOCs
+function aggregateTopIOCs(articles) {
+  const iocCounts = {
+    domains: {},
+    ipAddresses: {},
+    hashes: {},
+    cves: {},
+    malwareFamilies: {}
+  };
+  
+  articles.forEach(article => {
+    if (article.iocs) {
+      // Count domains
+      if (article.iocs.networkIOCs?.domains) {
+        article.iocs.networkIOCs.domains.forEach(domain => {
+          iocCounts.domains[domain] = (iocCounts.domains[domain] || 0) + 1;
+        });
+      }
+      
+      // Count IPs
+      if (article.iocs.networkIOCs?.ipAddresses) {
+        article.iocs.networkIOCs.ipAddresses.forEach(ip => {
+          iocCounts.ipAddresses[ip] = (iocCounts.ipAddresses[ip] || 0) + 1;
+        });
+      }
+      
+      // Count hashes
+      if (article.iocs.fileIOCs?.hashes) {
+        article.iocs.fileIOCs.hashes.forEach(hash => {
+          iocCounts.hashes[hash] = (iocCounts.hashes[hash] || 0) + 1;
+        });
+      }
+      
+      // Count CVEs
+      if (article.iocs.threatIntelligence?.cves) {
+        article.iocs.threatIntelligence.cves.forEach(cve => {
+          iocCounts.cves[cve] = (iocCounts.cves[cve] || 0) + 1;
+        });
+      }
+      
+      // Count malware families
+      if (article.iocs.threatIntelligence?.malwareFamilies) {
+        article.iocs.threatIntelligence.malwareFamilies.forEach(family => {
+          iocCounts.malwareFamilies[family] = (iocCounts.malwareFamilies[family] || 0) + 1;
+        });
+      }
+    }
+  });
+  
+  // Get top 5 for each IOC type
+  return {
+    domains: Object.entries(iocCounts.domains)
+      .sort((a, b) => b[1] - a[1])
+      .slice(0, 5)
+      .map(([domain, count]) => ({ domain, count })),
+    ipAddresses: Object.entries(iocCounts.ipAddresses)
+      .sort((a, b) => b[1] - a[1])
+      .slice(0, 5)
+      .map(([ip, count]) => ({ ip, count })),
+    hashes: Object.entries(iocCounts.hashes)
+      .sort((a, b) => b[1] - a[1])
+      .slice(0, 5)
+      .map(([hash, count]) => ({ hash, count })),
+    cves: Object.entries(iocCounts.cves)
+      .sort((a, b) => b[1] - a[1])
+      .slice(0, 5)
+      .map(([cve, count]) => ({ cve, count })),
+    malwareFamilies: Object.entries(iocCounts.malwareFamilies)
+      .sort((a, b) => b[1] - a[1])
+      .slice(0, 5)
+      .map(([family, count]) => ({ family, count }))
+  };
+}
+
+// Helper function to get trending tags
+function getTrendingTags(articles) {
+  const tagCounts = {};
+  
+  articles.forEach(article => {
+    article.tags.forEach(tag => {
+      tagCounts[tag] = (tagCounts[tag] || 0) + 1;
+    });
+  });
+  
+  return Object.entries(tagCounts)
+    .sort((a, b) => b[1] - a[1])
+    .slice(0, 10)
+    .map(([tag, count]) => ({ tag, count }));
+}
+
+// Helper function to get source distribution
+function getSourceDistribution(articles) {
+  const sourceCounts = {};
+  
+  articles.forEach(article => {
+    sourceCounts[article.source] = (sourceCounts[article.source] || 0) + 1;
+  });
+  
+  return Object.entries(sourceCounts)
+    .sort((a, b) => b[1] - a[1])
+    .map(([source, count]) => ({ source, count }));
+}
+
 // Health check endpoint
 app.get('/health', (req, res) => {
   res.json({ 
@@ -833,7 +1230,10 @@ app.get('/health', (req, res) => {
     socketConnections: io.engine.clientsCount
   });
 });
-
+// Serve reports page
+app.get('/reports', (req, res) => {
+  res.sendFile(__dirname + '/reports.html');
+});
 // Start server
 server.listen(PORT, async () => {
   console.log(`\n🚀 Cybersecurity Threat Intelligence Server running on http://localhost:${PORT}`);
@@ -842,6 +1242,10 @@ server.listen(PORT, async () => {
   console.log('  📊 /api/threats - Combined threat intelligence');
   console.log('  🔍 /api/iocs - Indicators of Compromise');
   console.log('  🤖 /api/summarize - Threat summaries');
+  console.log('  📈 /api/reports/daily - Daily threat report');
+  console.log('  📈 /api/reports/weekly - Weekly threat report');
+  console.log('  📈 /api/reports/custom - Custom date range report');
+  console.log('  🕵️ /api/reports/threat-actors - Threat actor analysis');
   console.log('  🏥 /health - System health check');
   console.log('\n📡 Socket.IO: Real-time threat broadcasting enabled');
   console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n');
